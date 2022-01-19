@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "commonjs",
+    "lib": ["ES2020", "dom"],
+    "jsx": "react",
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./lib/es5",
+    "baseUrl": ".",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "removeComments": false
+  },
+  "files": ["./src/index.ts"],
+  "exclude": [
+    "node_modules",
+  ]
+}

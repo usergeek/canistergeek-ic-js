@@ -1,0 +1,17 @@
+export declare const PRODUCT_NAME = "Canistergeek";
+export declare const GRANULARITY_SECONDS: number;
+export declare const HOUR_MILLIS: number;
+export declare const DAY_SECONDS: number;
+export declare const DAY_MILLIS: number;
+export declare const MEMORY_MAX_PER_CANISTER: number;
+export declare const NO_NUMERIC_VALUE_LABEL = "n/a";
+export declare const NO_OBJECT_VALUE_LABEL = "n/a";
+export declare const BYTES_IN_KB = 1024;
+export declare const BYTES_IN_MB: number;
+export declare const BYTES_IN_GB: number;
+export declare const CYCLES_IN_K = 1000;
+export declare const CYCLES_IN_M: number;
+export declare const CYCLES_IN_G: number;
+export declare const CYCLES_IN_T: number;
+export declare const COLOR_DANGER_HEX = "red";
+export declare const COLOR_GRAY_HEX = "lightgray";
