@@ -1,5 +1,4 @@
 import _ from "lodash";
-import Highcharts from "highcharts";
 import {NO_NUMERIC_VALUE_LABEL} from "./Constants";
 
 const sumArray = (values: Array<bigint> | undefined): number => {
@@ -41,23 +40,33 @@ const formatSignificantValue = (value?: bigint | number, decimals: number = 0): 
     return NO_NUMERIC_VALUE_LABEL
 }
 
+const intlFormatNumber = (value: bigint | number, maximumFractionDigits: number = 0, thousandsSeparator: string = ""): string => {
+    const parts = Intl.NumberFormat('en-US', {maximumFractionDigits: maximumFractionDigits}).formatToParts(value)
+    _.each(parts, part => {
+        switch (part.type as Intl.NumberFormatPartTypes) {
+            case "group": {
+                part.value = thousandsSeparator
+                break;
+            }
+            case "decimal": {
+                part.value = "."
+                break;
+            }
+        }
+    })
+    return parts.map(v => v.value).join("")
+}
+
 /**
  * Format a number and return a string based on passed number of fraction digits.
  * Thousands separator is space " "
  * @param {bigint | number} value
- * @param {number | 0} decimals maximum number of fraction digits
+ * @param {number | 0} maximumFractionDigits maximum number of fraction digits
  * @return Formatted number
  * @example having value `9999999.6666` and decimals `3` will output string `"9 999 999.667"`
  */
-const formatNumericValue = (value: bigint | number, decimals: number = 0): string => {
-    const valueNumber = Number(value)
-    if (decimals > 0) {
-        const fractionalPart = parseFloat((valueNumber % 1).toFixed(decimals))
-        const wholeNumberFormatted = CalculationUtils.formatSignificantNumericValue(valueNumber, 0)
-        const fractionalPartWithoutZero = fractionalPart.toString().substr(1)
-        return `${wholeNumberFormatted}${fractionalPartWithoutZero}`
-    }
-    return Highcharts.numberFormat(valueNumber, decimals, undefined, " ")
+const formatNumericValue = (value: bigint | number, maximumFractionDigits: number = 0): string => {
+    return intlFormatNumber(value, maximumFractionDigits, " ")
 }
 
 const formatSignificantSumArray = (values: Array<bigint> | undefined): string => {
@@ -75,7 +84,7 @@ const recalculateCyclesToDollars = (value?: bigint | number): number => {
 const recalculateCyclesToDollarsFormatted = (value?: bigint | number): string => {
     const dollars = recalculateCyclesToDollars(value);
     if (dollars && dollars !== 0) {
-        return Highcharts.numberFormat(dollars, 4) + "$"
+        return intlFormatNumber(dollars, 4) + "$"
     }
     return "0$"
 }

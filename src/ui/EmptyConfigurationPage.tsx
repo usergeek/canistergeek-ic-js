@@ -1,6 +1,6 @@
 import * as React from "react";
 import {useCallback} from "react";
-import {Button, PageHeader, Result, Row, Col} from "antd";
+import {Button, Col, PageHeader, Result, Row} from "antd";
 import {useHistory} from "react-router-dom";
 import {PageContent} from "./PageContent";
 import {PRODUCT_NAME} from "../dataProvider/Constants";

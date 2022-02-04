@@ -3,6 +3,7 @@ export declare const GRANULARITY_SECONDS: number;
 export declare const HOUR_MILLIS: number;
 export declare const DAY_SECONDS: number;
 export declare const DAY_MILLIS: number;
+export declare const DAY_INTERVALS_COUNT: number;
 export declare const MEMORY_MAX_PER_CANISTER: number;
 export declare const NO_NUMERIC_VALUE_LABEL = "n/a";
 export declare const NO_OBJECT_VALUE_LABEL = "n/a";

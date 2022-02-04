@@ -6,6 +6,8 @@ export const HOUR_MILLIS: number = 60 * 60 * 1000;
 export const DAY_SECONDS: number = 24 * 60 * 60;
 export const DAY_MILLIS: number = DAY_SECONDS * 1000;
 
+export const DAY_INTERVALS_COUNT: number = DAY_SECONDS / GRANULARITY_SECONDS;
+
 export const MEMORY_MAX_PER_CANISTER = 2 * 1024 * 1024 * 1024 // 2Gb
 
 export const NO_NUMERIC_VALUE_LABEL = "n/a"

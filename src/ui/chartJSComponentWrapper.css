@@ -1,0 +1,23 @@
+.chartJSContainer {
+    position: relative;
+    height: 432px;
+}
+
+/*chart container*/
+.chartJSContainerMasked .chartJSChart {
+    filter: blur(8px);
+    -webkit-filter: blur(8px);
+    opacity: 0.4;
+}
+
+.chartJSContainer .chartJSChartOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

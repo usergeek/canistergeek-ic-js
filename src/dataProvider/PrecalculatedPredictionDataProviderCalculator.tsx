@@ -1,5 +1,5 @@
 import {HourlyMetricsData} from "../api/canistergeek.did";
-import {CanisterPredictionData, DateData, PrecalculatedData, PredictionInterval, PredictionMetricsData, ValueData} from "./PrecalculatedPredictionDataProvider";
+import {CanisterPredictionData, DateData, MetricsData, PrecalculatedData, PredictionInterval, PredictionMetricsData, ValueData} from "./PrecalculatedPredictionDataProvider";
 import {DataProviderUtils, LatestSignificantHourlyValue} from "../dataProvider/DataProviderUtils";
 import {DateDifference, DateUtils} from "./DateUtils";
 import {COLOR_GRAY_HEX, DAY_MILLIS, GRANULARITY_SECONDS, HOUR_MILLIS, MEMORY_MAX_PER_CANISTER, NO_OBJECT_VALUE_LABEL} from "./Constants";
@@ -249,15 +249,52 @@ const getPrecalculatedData = (dataHourly: ContextDataHourly, configuration: Conf
         if (hourlyMetricsData.length > 0) {
             const metricIntervalIndexForCurrentTime = DateUtils.getMetricIntervalIndexForCurrentTime();
 
-            let predictionMetricsData: PredictionMetricsData | undefined = getPredictionMetricsData(hourlyMetricsData, "day", metricIntervalIndexForCurrentTime, configuration.metrics)
-            if (!predictionMetricsData) {
-                predictionMetricsData = getPredictionMetricsData(hourlyMetricsData, "hour", metricIntervalIndexForCurrentTime, configuration.metrics)
+            //let's get cycle and memory differences with "day" interval (more precise prediction)
+            const predictionMetricsData_day: PredictionMetricsData | undefined = getPredictionMetricsData(hourlyMetricsData, "day", metricIntervalIndexForCurrentTime, configuration.metrics)
+            let cyclesDayGood = false
+            let cyclesMetricData: MetricsData<number> | undefined = undefined
+            let memoryDayGood = false
+            let memoryMetricData: MetricsData<number> | undefined = undefined
+            if (predictionMetricsData_day) {
+                //first let's analyze if data is valuable for prediction:
+                //1. cycles difference should be <= 0
+                //1. memory difference should be >= 0
+                cyclesMetricData = predictionMetricsData_day.cycles
+                if (predictionMetricsData_day.cycles.data.difference <= 0) {
+                    //it is ok that cycles are the same or reduced
+                    cyclesDayGood = true
+                }
+                memoryMetricData = predictionMetricsData_day.memory
+                if (predictionMetricsData_day.memory.data.difference > 0) {
+                    //it is ok that memory is the same or increased
+                    memoryDayGood = true
+                }
             }
-
-            if (predictionMetricsData) {
+            if (!cyclesDayGood || !memoryDayGood) {
+                //if cycles or memory is not good - lets check with "hour" interval (less precise prediction)
+                const predictionMetricsData_hour: PredictionMetricsData | undefined = getPredictionMetricsData(hourlyMetricsData, "hour", metricIntervalIndexForCurrentTime, configuration.metrics)
+                if (predictionMetricsData_hour) {
+                    if (!cyclesDayGood) {
+                        if (predictionMetricsData_hour.cycles.data.difference <= 0) {
+                            //it is ok that cycles are the same or reduced
+                            cyclesMetricData = predictionMetricsData_hour.cycles
+                        }
+                    }
+                    if (!memoryDayGood) {
+                        if (predictionMetricsData_hour.memory.data.difference > 0) {
+                            //it is ok that memory is the same or increased
+                            memoryMetricData = predictionMetricsData_hour.memory
+                        }
+                    }
+                }
+            }
+            if (cyclesMetricData && memoryMetricData) {
                 return {
                     canisterId: canisterId,
-                    predictionData: predictionMetricsData
+                    predictionData: {
+                        cycles: cyclesMetricData,
+                        memory: memoryMetricData
+                    }
                 }
             }
         }

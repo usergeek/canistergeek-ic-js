@@ -3,9 +3,6 @@ import {useEffect} from "react";
 import {Col, Descriptions, PageHeader, Row, Spin, Typography} from "antd";
 import {useDataContext} from "../dataProvider/DataProvider";
 import {DashboardUtils} from "./DashboardUtils";
-import {ChartDailyData, ChartHourlyDataSource, ChartOptionsParams, DailyChartWithNumericEntityData, HighchartsUtils} from "./HighchartsUtils";
-import {HighchartsOptionsContext, HighchartsOptionsProvider} from "./HighchartsOptionsProvider";
-import {HighchartsComponentWrapper} from "./HighchartsComponentWrapper";
 import {CanisterMetricsErrorPageAlert} from "./CanisterMetricsErrorPageAlert";
 import _ from "lodash"
 import {DataProviderUtils} from "../dataProvider/DataProviderUtils";
@@ -13,6 +10,9 @@ import {CalculationUtils} from "../dataProvider/CalculationUtils";
 import {SummaryRealtimeSimpleMetricWrapperLabelComponent} from "./SummaryRealtimeSimpleMetricWrapperLabelComponent";
 import {PrecalculatedRealtimeDataProviderCalculator} from "../dataProvider/PrecalculatedRealtimeDataProviderCalculator";
 import {useConfigurationContext} from "../dataProvider/ConfigurationProvider";
+import {ChartJSComponentSupplierContext, ChartJSComponentSupplierProvider} from "./ChartJSComponentSupplierProvider";
+import {ChartJSComponentWrapper} from "./ChartJSComponentWrapper";
+import {ChartDailyData as ChartJSChartDailyData, ChartHourlyDataSource, ChartJSUtils, ChartOptionsParams as ChartJSChartOptionsParams, DailyChartWithNumericEntityData as ChartJSDailyChartWithNumericEntityData} from "./ChartJSUtils";
 
 type Props = {
     canisterId: string
@@ -95,78 +95,78 @@ export const CanisterSectionComponent = (props: Props) => {
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<Array<ChartHourlyDataSource> | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                                     data={canisterCyclesAggregatedDataHourly}
-                                                                                                                     parameters={{
-                                                                                                                         chartTitle: "Cycles",
-                                                                                                                         yAxisTitle: "Count"
-                                                                                                                     }}
-                                                                                                                     highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForHourlyChart}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<Array<ChartHourlyDataSource> | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                                   data={canisterCyclesAggregatedDataHourly}
+                                                                                                                                   parameters={{
+                                                                                                                                       chartTitle: "Cycles",
+                                                                                                                                       yAxisTitle: "Count"
+                                                                                                                                   }}
+                                                                                                                                   chartContextProviderFn={ChartJSUtils.provideCommonOptionsForHourlyChart}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Cycles"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Cycles"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<Array<ChartHourlyDataSource> | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                                     data={canisterUpdateCallsAggregatedDataHourly}
-                                                                                                                     parameters={{
-                                                                                                                         chartTitle: "Update Calls",
-                                                                                                                         yAxisTitle: "Count"
-                                                                                                                     }}
-                                                                                                                     highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForHourlyChart}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<Array<ChartHourlyDataSource> | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                                   data={canisterUpdateCallsAggregatedDataHourly}
+                                                                                                                                   parameters={{
+                                                                                                                                       chartTitle: "Update Calls",
+                                                                                                                                       yAxisTitle: "Count"
+                                                                                                                                   }}
+                                                                                                                                   chartContextProviderFn={ChartJSUtils.provideCommonOptionsForHourlyChart}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Update Calls"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Update Calls"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<Array<ChartHourlyDataSource> | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                                     data={canisterMemoryAggregatedDataHourly}
-                                                                                                                     parameters={{
-                                                                                                                         chartTitle: "Memory Size",
-                                                                                                                         yAxisTitle: "Bytes",
-                                                                                                                         tooltipValuePostfix: " bytes"
-                                                                                                                     }}
-                                                                                                                     highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForHourlyChart}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<Array<ChartHourlyDataSource> | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                                   data={canisterMemoryAggregatedDataHourly}
+                                                                                                                                   parameters={{
+                                                                                                                                       chartTitle: "Memory Size",
+                                                                                                                                       yAxisTitle: "Bytes",
+                                                                                                                                       tooltipValuePostfix: " bytes"
+                                                                                                                                   }}
+                                                                                                                                   chartContextProviderFn={ChartJSUtils.provideCommonOptionsForHourlyChart}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Memory Size"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Memory Size"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<Array<ChartHourlyDataSource> | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                                     data={canisterHeapMemoryAggregatedDataHourly}
-                                                                                                                     parameters={{
-                                                                                                                         chartTitle: "Heap Memory Size",
-                                                                                                                         yAxisTitle: "Bytes",
-                                                                                                                         tooltipValuePostfix: " bytes"
-                                                                                                                     }}
-                                                                                                                     highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForHourlyChart}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<Array<ChartHourlyDataSource> | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                                   data={canisterHeapMemoryAggregatedDataHourly}
+                                                                                                                                   parameters={{
+                                                                                                                                       chartTitle: "Heap Memory Size",
+                                                                                                                                       yAxisTitle: "Bytes",
+                                                                                                                                       tooltipValuePostfix: " bytes"
+                                                                                                                                   }}
+                                                                                                                                   chartContextProviderFn={ChartJSUtils.provideCommonOptionsForHourlyChart}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Heap Memory Size"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Heap Memory Size"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>
@@ -177,78 +177,78 @@ export const CanisterSectionComponent = (props: Props) => {
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<ChartDailyData | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                       data={HighchartsUtils.prepareChartDailyData(dataDailyMetrics, source => source.updateCalls)}
-                                                                                                       parameters={{
-                                                                                                           chartTitle: "Update Calls Daily",
-                                                                                                           yAxisTitle: "Count"
-                                                                                                       }}
-                                                                                                       highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForDailyChart}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<ChartJSChartDailyData | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                            data={ChartJSUtils.prepareChartDailyData(dataDailyMetrics, source => source.updateCalls)}
+                                                                                                                            parameters={{
+                                                                                                                                chartTitle: "Update Calls Daily",
+                                                                                                                                yAxisTitle: "Count"
+                                                                                                                            }}
+                                                                                                                            chartContextProviderFn={ChartJSUtils.provideCommonOptionsForDailyChart}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Update Calls Daily"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Update Calls Daily"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<DailyChartWithNumericEntityData | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                                        data={HighchartsUtils.prepareChartDailyDataWithNumericEntityFor(dataDailyMetrics, dailyMetricsData => dailyMetricsData.canisterCycles)}
-                                                                                                                        parameters={{
-                                                                                                                            chartTitle: "Cycles Daily",
-                                                                                                                            yAxisTitle: "Count"
-                                                                                                                        }}
-                                                                                                                        highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForDailyChartWithNumericEntity}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<ChartJSDailyChartWithNumericEntityData | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                                             data={ChartJSUtils.prepareChartDailyDataWithNumericEntityFor(dataDailyMetrics, dailyMetricsData => dailyMetricsData.canisterCycles)}
+                                                                                                                                             parameters={{
+                                                                                                                                                 chartTitle: "Cycles Daily",
+                                                                                                                                                 yAxisTitle: "Count"
+                                                                                                                                             }}
+                                                                                                                                             chartContextProviderFn={ChartJSUtils.provideCommonOptionsForDailyChartWithNumericEntity}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Cycles Daily"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Cycles Daily"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<DailyChartWithNumericEntityData | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                                        data={HighchartsUtils.prepareChartDailyDataWithNumericEntityFor(dataDailyMetrics, dailyMetricsData => dailyMetricsData.canisterMemorySize)}
-                                                                                                                        parameters={{
-                                                                                                                            chartTitle: "Memory Daily",
-                                                                                                                            yAxisTitle: "Bytes",
-                                                                                                                            tooltipValuePostfix: " bytes"
-                                                                                                                        }}
-                                                                                                                        highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForDailyChartWithNumericEntity}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<ChartJSDailyChartWithNumericEntityData | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                                             data={ChartJSUtils.prepareChartDailyDataWithNumericEntityFor(dataDailyMetrics, dailyMetricsData => dailyMetricsData.canisterMemorySize)}
+                                                                                                                                             parameters={{
+                                                                                                                                                 chartTitle: "Memory Daily",
+                                                                                                                                                 yAxisTitle: "Bytes",
+                                                                                                                                                 tooltipValuePostfix: " bytes"
+                                                                                                                                             }}
+                                                                                                                                             chartContextProviderFn={ChartJSUtils.provideCommonOptionsForDailyChartWithNumericEntity}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Memory Daily"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Memory Daily"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>
                 <Col span={24}>
                     <Row>
                         <Col span={24}>
-                            <HighchartsOptionsProvider<DailyChartWithNumericEntityData | undefined, ChartOptionsParams> error={canisterError}
-                                                                                                                        data={HighchartsUtils.prepareChartDailyDataWithNumericEntityFor(dataDailyMetrics, dailyMetricsData => dailyMetricsData.canisterHeapMemorySize)}
-                                                                                                                        parameters={{
-                                                                                                                            chartTitle: "Heap Memory Daily",
-                                                                                                                            yAxisTitle: "Bytes",
-                                                                                                                            tooltipValuePostfix: " bytes"
-                                                                                                                        }}
-                                                                                                                        highchartsOptionsProviderFn={HighchartsUtils.provideCommonOptionsForDailyChartWithNumericEntity}>
-                                <HighchartsOptionsContext.Consumer>
+                            <ChartJSComponentSupplierProvider<ChartJSDailyChartWithNumericEntityData | undefined, ChartJSChartOptionsParams> error={canisterError}
+                                                                                                                                             data={ChartJSUtils.prepareChartDailyDataWithNumericEntityFor(dataDailyMetrics, dailyMetricsData => dailyMetricsData.canisterHeapMemorySize)}
+                                                                                                                                             parameters={{
+                                                                                                                                                 chartTitle: "Heap Memory Daily",
+                                                                                                                                                 yAxisTitle: "Bytes",
+                                                                                                                                                 tooltipValuePostfix: " bytes"
+                                                                                                                                             }}
+                                                                                                                                             chartContextProviderFn={ChartJSUtils.provideCommonOptionsForDailyChartWithNumericEntity}>
+                                <ChartJSComponentSupplierContext.Consumer>
                                     {context => {
-                                        return <HighchartsComponentWrapper highchartsOptionsState={context.state} inProgress={canisterInProgress} chartIdentifier={"Heap Memory Daily"}/>
+                                        return <ChartJSComponentWrapper supplier={context.state} inProgress={canisterInProgress} chartIdentifier={"Heap Memory Daily"}/>
                                     }}
-                                </HighchartsOptionsContext.Consumer>
-                            </HighchartsOptionsProvider>
+                                </ChartJSComponentSupplierContext.Consumer>
+                            </ChartJSComponentSupplierProvider>
                         </Col>
                     </Row>
                 </Col>

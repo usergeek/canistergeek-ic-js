@@ -1,5 +1,5 @@
 import {PrecalculatedData, SummaryPageTrendSectionData, TrendSection24HoursData, TrendSection24HoursInterval, TrendSectionShiftData, TrendSectionShiftsData} from "./PrecalculatedTrendDataProvider";
-import {DAY_MILLIS, GRANULARITY_SECONDS} from "./Constants";
+import {DAY_INTERVALS_COUNT, DAY_MILLIS, GRANULARITY_SECONDS} from "./Constants";
 import {HourlyMetricsData} from "../api/canistergeek.did";
 import _ from "lodash";
 import {CalculationUtils} from "../dataProvider/CalculationUtils";
@@ -13,17 +13,28 @@ export type PairOfDaysDataForFull24HoursInterval = {
 
 const getPairOfDaysDataForFull24HoursIntervalFromNow = (dataHourlyMetrics: Array<HourlyMetricsData>, numberOfShiftsBy24Hours: number): PairOfDaysDataForFull24HoursInterval | undefined => {
     const nowTimeUTC = DateUtils.nowTimeUTC();
+
     const dayTo_millis = nowTimeUTC - (DAY_MILLIS * numberOfShiftsBy24Hours)
     const dayTo_startOfDayMilliseconds = DateUtils.getStartOfDayMilliseconds(dayTo_millis);
-    const dayTo_data = dataHourlyMetrics.find(value => Number(value.timeMillis) == dayTo_startOfDayMilliseconds)
-    if (dayTo_data) {
-        const dayFrom_startOfDayMilliseconds = dayTo_startOfDayMilliseconds - DAY_MILLIS
-        const dayFrom_data = dataHourlyMetrics.find(value => Number(value.timeMillis) == dayFrom_startOfDayMilliseconds)
-        if (dayFrom_data) {
-            return {
-                from: dayFrom_data,
-                to: dayTo_data
-            }
+    let dayTo_data: HourlyMetricsData = dataHourlyMetrics.find(value => Number(value.timeMillis) == dayTo_startOfDayMilliseconds)
+
+    const dayFrom_startOfDayMilliseconds = dayTo_startOfDayMilliseconds - DAY_MILLIS
+    let dayFrom_data: HourlyMetricsData = dataHourlyMetrics.find(value => Number(value.timeMillis) == dayFrom_startOfDayMilliseconds)
+
+    if (dayTo_data || dayFrom_data) {
+        if (!dayTo_data) {
+            //mock dayTo_data as empty structure
+            const array = new Array(DAY_INTERVALS_COUNT).fill(BigInt(0))
+            dayTo_data = {timeMillis: BigInt(dayTo_startOfDayMilliseconds), updateCalls: array, canisterCycles: array, canisterMemorySize: array, canisterHeapMemorySize: array}
+        }
+        if (!dayFrom_data) {
+            //mock dayFrom_data as empty structure
+            const array = new Array(DAY_INTERVALS_COUNT).fill(BigInt(0))
+            dayFrom_data = {timeMillis: BigInt(dayFrom_startOfDayMilliseconds), updateCalls: array, canisterCycles: array, canisterMemorySize: array, canisterHeapMemorySize: array}
+        }
+        return {
+            from: dayFrom_data,
+            to: dayTo_data
         }
     }
     return undefined

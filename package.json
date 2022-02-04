@@ -1,6 +1,6 @@
 {
   "name": "canistergeek-ic-js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Canistergeek Javascript Library",
   "main": "./lib/es5/index.js",
   "author": "Canistergeek <support@usergeek.com>",
@@ -15,8 +15,9 @@
   "scripts": {
     "clean": "rm -rf lib",
     "prebuild": "npm run clean",
-    "build": "tsc --project tsconfig.json && npm run copy_did",
-    "copy_did": "cp src/api/*.did.d.ts lib/es5/api"
+    "build": "tsc --project tsconfig.json && npm run copy_did && npm run copy_css",
+    "copy_did": "cp src/api/*.did.d.ts lib/es5/api",
+    "copy_css": "cp src/ui/*.css lib/es5/ui"
   },
   "dependencies": {
     "@dfinity/agent": "^0.10.2",
@@ -28,13 +29,15 @@
     "@types/react-dom": "^17.0.11",
     "@types/react-router-dom": "^5.3.2",
     "antd": "^4.16.12",
-    "highcharts": "^9.2.2",
-    "highcharts-react-official": "^3.0.0",
+    "chart.js": "^3.7.0",
+    "chartjs-adapter-moment": "^1.0.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
+    "moment-timezone": "^0.5.34",
     "query-string": "^7.0.1",
     "react": "17.0.2",
     "react-ace": "^9.5.0",
+    "react-chartjs-2": "^4.0.1",
     "react-dom": "17.0.2",
     "react-router-dom": "^5.3.0",
     "use-custom-compare": "^1.2.0"

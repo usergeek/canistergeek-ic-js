@@ -1,43 +1,37 @@
 import * as React from "react";
 import {PropsWithChildren, Reducer, useReducer} from "react";
-import Highcharts from "highcharts";
 import {useCustomCompareEffect, useCustomCompareMemo} from "use-custom-compare";
 import _ from "lodash"
+import {ChartJSChartComponentSupplier, ChartJSChartContext} from "./ChartJSChartContext";
 
 export type StateError = {
     error?: Error
     isError: boolean
 }
 
-export type HighchartsOptionsState = {
-    isError: boolean
-    error?: Error
-    options: Highcharts.Options,
-}
-
-const initialState: HighchartsOptionsState = {
+const initialState: ChartJSChartComponentSupplier = {
     isError: false,
     error: undefined,
-    options: {},
+    chartContext: undefined,
 }
 
-export type Context = { state: HighchartsOptionsState }
+export type Context = { state: ChartJSChartComponentSupplier }
 const defaultContextValue: Context = {state: initialState}
 
-export const HighchartsOptionsContext = React.createContext<Context>(defaultContextValue);
+export const ChartJSComponentSupplierContext = React.createContext<Context>(defaultContextValue);
 
-type HighchartsOptionsProviderFn<D, P> = (data: D, parameters: P) => Highcharts.Options
+type ChartJSChartContextProviderFn<D, P> = (data: D, parameters: P) => ChartJSChartContext | undefined
 type StateDataTransformFn<D> = (data: D) => any
 
 type Props<D, P> = {
     error?: StateError
     data: D
     parameters: P
-    highchartsOptionsProviderFn: HighchartsOptionsProviderFn<D, P>
+    chartContextProviderFn: ChartJSChartContextProviderFn<D, P>
     stateDataTransformFn?: StateDataTransformFn<D>
 }
 
-export function HighchartsOptionsProvider<D, P>(props: PropsWithChildren<Props<D, P>>) {
+export function ChartJSComponentSupplierProvider<D, P>(props: PropsWithChildren<Props<D, P>>) {
 
     useCustomCompareEffect(() => {
         // }
@@ -46,53 +40,50 @@ export function HighchartsOptionsProvider<D, P>(props: PropsWithChildren<Props<D
                 setState({
                     isError: props.error.isError,
                     error: props.error.error,
-                    options: {},
+                    chartContext: undefined,
                 })
             } else {
                 const data = props.data;
                 if (data) {
                     const parameters = _.isNil(props.stateDataTransformFn) ? data : props.stateDataTransformFn(data)
-                    const options = props.highchartsOptionsProviderFn(parameters, props.parameters)
-                    if (options.exporting) {
-                        options.exporting.enabled = false
-                    }
+                    const chartContext = props.chartContextProviderFn(parameters, props.parameters)
                     setState({
                         isError: false,
                         error: undefined,
-                        options: options,
+                        chartContext: chartContext,
                     })
                 } else {
                     setState({
                         isError: false,
                         error: undefined,
-                        options: {},
+                        chartContext: undefined,
                     })
                 }
             }
         } catch (e) {
-            console.error("HighchartsOptionsProvider calculation failed:", e);
+            console.error("ChartJSComponentSupplierProvider calculation failed:", e);
             setState({
                 isError: true,
                 error: new Error("temporarilyUnavailable"),
-                options: {},
+                chartContext: undefined,
             })
         }
-    }, [props.error, props.data, props.parameters, props.highchartsOptionsProviderFn, props.stateDataTransformFn], (prevDeps, nextDeps) => {
+    }, [props.error, props.data, props.parameters, props.chartContextProviderFn, props.stateDataTransformFn], (prevDeps, nextDeps) => {
         return _.isEqual(prevDeps, nextDeps)
     })
 
-    const [state, setState] = useReducer<Reducer<HighchartsOptionsState, Partial<HighchartsOptionsState>>>(
+    const [state, setState] = useReducer<Reducer<ChartJSChartComponentSupplier, Partial<ChartJSChartComponentSupplier>>>(
         (state, newState) => ({...state, ...newState}),
         _.cloneDeep(initialState)
     )
-    const value = useCustomCompareMemo<Context, [HighchartsOptionsState]>(() => ({
+    const value = useCustomCompareMemo<Context, [ChartJSChartComponentSupplier]>(() => ({
         state,
     }), [
         state,
     ], (prevDeps, nextDeps) => {
         return _.isEqual(prevDeps, nextDeps)
     })
-    return <HighchartsOptionsContext.Provider value={value}>
+    return <ChartJSComponentSupplierContext.Provider value={value}>
         {props.children}
-    </HighchartsOptionsContext.Provider>
+    </ChartJSComponentSupplierContext.Provider>
 }
