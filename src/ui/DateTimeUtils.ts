@@ -1,7 +1,6 @@
 // import Moment from 'moment';
 import Moment from 'moment-timezone';
 
-console.log("Moment", Moment);
 Moment.locale("en");
 Moment.tz.setDefault("UTC");
 
