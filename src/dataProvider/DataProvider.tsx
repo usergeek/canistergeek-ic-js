@@ -9,15 +9,33 @@ import _ from "lodash"
 import {CanisterId} from "./ConfigurationProvider";
 import useIsMounted from "../util/isMounted";
 import {hasOwnProperty} from "../util/typescriptAddons";
+import {Principal} from "@dfinity/principal";
 
 type Granularity = "hourly" | "daily"
-export type GetCanisterMetricsFnParams = { canisterId: string, fromMillisUTC: bigint, toMillisUTC: bigint, granularity: Granularity }
+
+export type GetCanisterMetricsSource = "canister" | "blackhole"
+
+type GetCanisterMetricsFnParamsCommon<S extends GetCanisterMetricsSource = GetCanisterMetricsSource> = {
+    canisterId: string
+    source: S
+}
+
+export type GetCanisterMetricsFnParamsCanister = GetCanisterMetricsFnParamsCommon<"canister"> & { fromMillisUTC: bigint, toMillisUTC: bigint, granularity: Granularity }
+export type GetCanisterMetricsFnParamsBlackhole = GetCanisterMetricsFnParamsCommon<"blackhole"> & {}
+export type GetCanisterMetricsFnParams = GetCanisterMetricsFnParamsCanister | GetCanisterMetricsFnParamsBlackhole
+
 type GetCanisterMetricsFn = (params: Array<GetCanisterMetricsFnParams>) => void
 type CollectCanisterMetricsFnParams = { canisterIds: Array<string> }
 type CollectCanisterMetricsFn = (params: CollectCanisterMetricsFnParams) => Promise<any>
 
+export type CanisterBlackholeData = {
+    cycles: bigint,
+    memory_size: bigint,
+}
+
 export type ContextDataHourly = { [key: CanisterId]: Array<HourlyMetricsData> }
 export type ContextDataDaily = { [key: CanisterId]: Array<DailyMetricsData> }
+export type ContextDataBlackhole = { [key: CanisterId]: CanisterBlackholeData | undefined }
 
 type ContentStatus = { inProgress: boolean, loaded: boolean }
 type CanisterStatus = { [key: CanisterId]: ContentStatus }
@@ -29,6 +47,7 @@ export interface Context {
     error: CanisterError
     dataHourly: ContextDataHourly
     dataDaily: ContextDataDaily
+    dataBlackhole: ContextDataBlackhole
     getCanisterMetrics: GetCanisterMetricsFn,
     collectCanisterMetrics: CollectCanisterMetricsFn,
 }
@@ -38,6 +57,7 @@ const initialContextValue: Context = {
     error: {},
     dataHourly: {},
     dataDaily: {},
+    dataBlackhole: {},
     getCanisterMetrics: () => undefined,
     collectCanisterMetrics: () => Promise.resolve(),
 }
@@ -91,17 +111,30 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         initialContextValue.dataHourly
     )
 
+    const [contextDataBlackhole, updateContextDataBlackhole] = useReducer<Reducer<ContextDataBlackhole, ContextDataBlackhole>>(
+        (state, newState) => ({...state, ...newState}),
+        initialContextValue.dataBlackhole
+    )
+
     const getCanisterMetrics: GetCanisterMetricsFn = useCallback<GetCanisterMetricsFn>(async (params: Array<GetCanisterMetricsFnParams>) => {
+        params = _.compact(params)
         const get = async () => {
-            updateContextStatus(_.mapValues(_.mapKeys(params, v => v.canisterId), () => ({inProgress: true})))
+            updateContextStatus(_.mapValues(_.mapKeys(params, (v) => {
+                return v.canisterId
+            }), () => ({inProgress: true})))
             try {
-                const promises: Array<Promise<FetchCanisterHourlyDataPromiseResult | FetchCanisterDailyDataPromiseResult | undefined>> = _.map(params, v => {
-                    switch (v.granularity) {
-                        case "hourly":
-                            return fetchCanisterHourlyDataAndUpdateState(v, props.identity, props.host)
-                        case "daily":
-                            return fetchCanisterDailyDataAndUpdateState(v, props.identity, props.host)
+                const promises: Array<Promise<FetchCanisterHourlyDataPromiseResult | FetchCanisterDailyDataPromiseResult | FetchCanisterBlackholeDataPromiseResult | undefined>> = _.map(params, (v) => {
+                    if (v.source == "canister") {
+                        switch (v.granularity) {
+                            case "hourly":
+                                return fetchCanisterHourlyDataAndUpdateState(v, props.identity, props.host)
+                            case "daily":
+                                return fetchCanisterDailyDataAndUpdateState(v, props.identity, props.host)
+                        }
+                    } else if (v.source == "blackhole") {
+                        return fetchCanisterBlackholeDataAndUpdateState(v, props.identity)
                     }
+                    return Promise.reject(undefined)
                 })
 
                 const allSettledResult = await Promise.allSettled(promises)
@@ -110,47 +143,53 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
                 const canisterErrorResult: { [key: CanisterId]: Partial<ContentError> } = {}
                 const contextDataHourlyResult: ContextDataHourly = {}
                 const contextDataDailyResult: ContextDataDaily = {}
+                const contextDataBlackholeResult: ContextDataBlackhole = {}
 
-                _.each(allSettledResult, (promiseSettleResult: PromiseSettledResult<FetchCanisterHourlyDataPromiseResult | FetchCanisterDailyDataPromiseResult | undefined>, idx) => {
-                    const canisterId = params[idx].canisterId
-                    const granularity = params[idx].granularity
+                _.each(allSettledResult, (promiseSettleResult: PromiseSettledResult<FetchCanisterHourlyDataPromiseResult | FetchCanisterDailyDataPromiseResult | FetchCanisterBlackholeDataPromiseResult | undefined>, idx) => {
+                    const currentParams: GetCanisterMetricsFnParams = params[idx];
+                    const canisterId = currentParams.canisterId
                     switch (promiseSettleResult.status) {
                         case "fulfilled": {
-                            const promiseSettleResultFulfilledValue: FetchCanisterHourlyDataPromiseResult | FetchCanisterDailyDataPromiseResult | undefined = promiseSettleResult.value;
+                            const promiseSettleResultFulfilledValue: FetchCanisterHourlyDataPromiseResult | FetchCanisterDailyDataPromiseResult | FetchCanisterBlackholeDataPromiseResult | undefined = promiseSettleResult.value;
                             if (promiseSettleResultFulfilledValue) {
                                 if (hasOwnProperty(promiseSettleResultFulfilledValue, "hourly")) {
                                     const promiseResult: FetchCanisterHourlyDataPromiseResult = promiseSettleResultFulfilledValue as FetchCanisterHourlyDataPromiseResult
-                                    canisterStatusResult[canisterId] = {inProgress: false, loaded: true}
-                                    canisterErrorResult[canisterId] = {error: undefined, isError: false}
                                     //latest day must be the last in the array
                                     contextDataHourlyResult[canisterId] = _.sortBy(promiseResult.hourly, v => v.timeMillis)
                                 } else if (hasOwnProperty(promiseSettleResultFulfilledValue, "daily")) {
                                     const promiseResult: FetchCanisterDailyDataPromiseResult = promiseSettleResultFulfilledValue as FetchCanisterDailyDataPromiseResult
-                                    canisterStatusResult[canisterId] = {inProgress: false, loaded: true}
-                                    canisterErrorResult[canisterId] = {error: undefined, isError: false}
                                     //latest day must be the last in the array
                                     contextDataDailyResult[canisterId] = _.sortBy(promiseResult.daily, v => v.timeMillis)
+                                } else if (hasOwnProperty(promiseSettleResultFulfilledValue, "blackhole")) {
+                                    const promiseResult: FetchCanisterBlackholeDataPromiseResult = promiseSettleResultFulfilledValue as FetchCanisterBlackholeDataPromiseResult
+                                    contextDataBlackholeResult[canisterId] = promiseResult.blackhole
                                 }
+                                canisterStatusResult[canisterId] = {inProgress: false, loaded: true}
+                                canisterErrorResult[canisterId] = {error: undefined, isError: false}
                             }
                             break;
                         }
                         case "rejected": {
-                            console.error("DataProvider.getCanisterMetrics: rejected", canisterId, promiseSettleResult.reason);
+                            console.error("DataProvider.getCanisterMetrics: rejected", canisterId, currentParams.source, promiseSettleResult.reason);
                             canisterStatusResult[canisterId] = {inProgress: false, loaded: true}
                             canisterErrorResult[canisterId] = {isError: true, error: promiseSettleResult.reason}
-                            switch (granularity) {
-                                case "hourly": {
-                                    contextDataHourlyResult[canisterId] = []
-                                    break;
+                            if (currentParams.source == "canister") {
+                                const granularity = currentParams.granularity
+                                switch (granularity) {
+                                    case "hourly": {
+                                        contextDataHourlyResult[canisterId] = []
+                                        break;
+                                    }
+                                    case "daily": {
+                                        contextDataDailyResult[canisterId] = []
+                                        break;
+                                    }
                                 }
-                                case "daily": {
-                                    contextDataDailyResult[canisterId] = []
-                                    break;
-                                }
+                            } else if (currentParams.source == "blackhole") {
+                                contextDataBlackholeResult[canisterId] = undefined
                             }
                             break;
                         }
-
                     }
                 })
                 unstable_batchedUpdates(() => {
@@ -158,6 +197,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
                     updateContextError(canisterErrorResult)
                     updateContextDataHourly(contextDataHourlyResult)
                     updateContextDataDaily(contextDataDailyResult)
+                    updateContextDataBlackhole(contextDataBlackholeResult)
                 })
             } catch (e) {
                 console.error(`DataProvider.getCanisterMetrics failed: caught error`, e);
@@ -175,7 +215,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         try {
             updateContextStatus(_.mapValues(_.mapKeys(params.canisterIds, v => v), () => ({inProgress: true})))
             const promises: Array<Promise<any>> = _.map<string, Promise<any>>(params.canisterIds, async (canisterId) => {
-                const canisterActor = CanistergeekService.createCanisterActor(canisterId, props.identity, props.host);
+                const canisterActor = CanistergeekService.createCanistergeekCanisterActor(canisterId, props.identity, props.host);
                 return canisterActor.collectCanisterMetrics()
             })
             const allSettledResult = await Promise.allSettled(promises)
@@ -191,11 +231,12 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         }
     }, [isMounted, props.identity, props.host])
 
-    const value = useCustomCompareMemo<Context, [CanisterStatus, CanisterError, ContextDataHourly, ContextDataDaily, GetCanisterMetricsFn, CollectCanisterMetricsFn]>(() => ({
+    const value = useCustomCompareMemo<Context, [CanisterStatus, CanisterError, ContextDataHourly, ContextDataDaily, ContextDataBlackhole, GetCanisterMetricsFn, CollectCanisterMetricsFn]>(() => ({
         status: contextStatus,
         error: contextError,
         dataHourly: contextDataHourly,
         dataDaily: contextDataDaily,
+        dataBlackhole: contextDataBlackhole,
         getCanisterMetrics: getCanisterMetrics,
         collectCanisterMetrics: collectCanisterMetrics,
     }), [
@@ -203,6 +244,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         contextError,
         contextDataHourly,
         contextDataDaily,
+        contextDataBlackhole,
         getCanisterMetrics,
         collectCanisterMetrics
     ], (prevDeps, nextDeps) => {
@@ -220,8 +262,8 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
 type FetchCanisterHourlyDataPromiseResult = {
     "hourly": Array<HourlyMetricsData>
 }
-const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParams, identity?: Identity, host?: string): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
-    const canisterActor = CanistergeekService.createCanisterActor(params.canisterId, identity, host);
+const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
+    const canisterActor = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
     const hourlyData = await canisterActor.getCanisterMetrics({
         granularity: {hourly: null},
         dateFromMillis: params.fromMillisUTC,
@@ -238,8 +280,13 @@ const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsF
 type FetchCanisterDailyDataPromiseResult = {
     "daily": Array<DailyMetricsData>
 }
-const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParams, identity?: Identity, host?: string): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
-    const canisterActor = CanistergeekService.createCanisterActor(params.canisterId, identity, host);
+
+type FetchCanisterBlackholeDataPromiseResult = {
+    "blackhole": CanisterBlackholeData
+}
+
+const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
+    const canisterActor = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
     const dailyData = await canisterActor.getCanisterMetrics({
         granularity: {daily: null},
         dateFromMillis: params.fromMillisUTC,
@@ -249,6 +296,17 @@ const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFn
     if (canisterDailyResponse) {
         return {
             daily: canisterDailyResponse
+        }
+    }
+}
+
+const fetchCanisterBlackholeDataAndUpdateState = async (params: GetCanisterMetricsFnParamsBlackhole, identity?: Identity): Promise<FetchCanisterBlackholeDataPromiseResult | undefined> => {
+    const canisterActor = CanistergeekService.createBlackholeCanisterActor(identity);
+    const canisterData = await canisterActor.canister_status({canister_id: Principal.fromText(params.canisterId)})
+    return {
+        blackhole: {
+            cycles: canisterData.cycles,
+            memory_size: canisterData.memory_size,
         }
     }
 }

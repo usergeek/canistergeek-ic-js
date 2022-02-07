@@ -4,10 +4,12 @@ import {useCustomCompareMemo} from "use-custom-compare";
 import _ from "lodash"
 
 export type CanisterId = string
+export type CanisterMetricsSource = "canister" | "blackhole"
 
 export type Canister = {
     canisterId: CanisterId
-    name?: string
+    name?: string,
+    metricsSource?: Array<CanisterMetricsSource>
 }
 
 type ThresholdStep = {
@@ -89,7 +91,6 @@ export const ConfigurationProvider = (props: PropsWithChildren<Props>) => {
     ], (prevDeps, nextDeps) => {
         return _.isEqual(prevDeps, nextDeps)
     })
-
     return <ConfigurationContext.Provider value={value}>
         {props.children}
     </ConfigurationContext.Provider>

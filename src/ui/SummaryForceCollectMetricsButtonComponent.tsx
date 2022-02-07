@@ -5,7 +5,7 @@ import {LineChartOutlined} from "@ant-design/icons";
 import _ from "lodash"
 import {useDataContext} from "../dataProvider/DataProvider";
 import {DashboardUtils} from "./DashboardUtils";
-import {useConfigurationContext} from "../dataProvider/ConfigurationProvider";
+import {Canister, useConfigurationContext} from "../dataProvider/ConfigurationProvider";
 
 export const SummaryForceCollectMetricsButtonComponent = () => {
     const configurationContext = useConfigurationContext();
@@ -17,10 +17,19 @@ export const SummaryForceCollectMetricsButtonComponent = () => {
 
     const onClick = useCallback(() => {
         (async () => {
-            await dataContext.collectCanisterMetrics({canisterIds: configurationContext.configuration.canisters.map(v => v.canisterId)})
-            dataContext.getCanisterMetrics(configurationContext.configuration.canisters.map(canister => DashboardUtils.getCanisterMetricsHourlyDashboardParams(canister.canisterId)))
+            //get only canisters with metricsSource = "canister"
+            const canisterIdsWithCanisterMetricsSource: Array<string> = _.compact(_.map<Canister, string>(configurationContext.configuration.canisters, (canister) => {
+                const metricsSource = configurationContext.configuration.canisters.find(v => v.canisterId == canister.canisterId)?.metricsSource
+                if (DashboardUtils.isMetricsSourceCanister(metricsSource)) {
+                    return canister.canisterId
+                }
+            }))
+            if (canisterIdsWithCanisterMetricsSource.length > 0) {
+                await dataContext.collectCanisterMetrics({canisterIds: canisterIdsWithCanisterMetricsSource})
+            }
+            dataContext.getCanisterMetrics(DashboardUtils.getSummaryPageParams(configurationContext.configuration.canisters))
         })()
-    }, [dataContext.collectCanisterMetrics, dataContext.getCanisterMetrics])
+    }, [dataContext.collectCanisterMetrics, dataContext.getCanisterMetrics, configurationContext.configuration.canisters])
 
     return <Button icon={<LineChartOutlined/>} onClick={onClick} disabled={inProgress} loading={inProgress}>Force Collect Metrics</Button>
 }

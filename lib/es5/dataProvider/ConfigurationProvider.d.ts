@@ -1,9 +1,11 @@
 import * as React from "react";
 import { PropsWithChildren } from "react";
 export declare type CanisterId = string;
+export declare type CanisterMetricsSource = "canister" | "blackhole";
 export declare type Canister = {
     canisterId: CanisterId;
     name?: string;
+    metricsSource?: Array<CanisterMetricsSource>;
 };
 declare type ThresholdStep = {
     value: number;

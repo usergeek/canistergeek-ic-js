@@ -4,14 +4,15 @@ import {useCustomCompareEffect, useCustomCompareMemo} from "use-custom-compare";
 import _ from "lodash"
 import {MetricWrapper} from "./PrecalculatedDataProvider";
 import {useDataContext} from "./DataProvider";
-import {CanisterId, useConfigurationContext} from "./ConfigurationProvider";
+import {CanisterId, CanisterMetricsSource, useConfigurationContext} from "./ConfigurationProvider";
 import {PrecalculatedRealtimeDataProviderCalculator} from "./PrecalculatedRealtimeDataProviderCalculator";
 
 export type SummaryPageRealtimeSectionData = {
     canisterId: string
-    cycles: MetricWrapper<number>
-    memory: MetricWrapper<number>
-    heapMemory: MetricWrapper<number>
+    metricsSource: CanisterMetricsSource
+    cycles?: MetricWrapper<number>
+    memory?: MetricWrapper<number>
+    heapMemory?: MetricWrapper<number>
 }
 
 export type PrecalculatedData = { [key: CanisterId]: SummaryPageRealtimeSectionData }
@@ -36,7 +37,7 @@ export const PrecalculatedRealtimeDataProvider = (props: PropsWithChildren<any>)
     const [precalculatedData, setPrecalculatedData] = useState<PrecalculatedData>({})
 
     useCustomCompareEffect(() => {
-        setPrecalculatedData(PrecalculatedRealtimeDataProviderCalculator.getPrecalculatedData(dataContext.dataHourly, configurationContext.configuration))
+        setPrecalculatedData(PrecalculatedRealtimeDataProviderCalculator.getPrecalculatedData(dataContext.dataHourly, dataContext.dataBlackhole, configurationContext.configuration))
     }, [dataContext.dataHourly, configurationContext.configuration], (prevDeps, nextDeps) => {
         return _.isEqual(prevDeps, nextDeps)
     })

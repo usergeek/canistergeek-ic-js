@@ -1,5 +1,4 @@
 import * as React from "react";
-import {useEffect} from "react";
 import {Col, Descriptions, PageHeader, Row, Spin, Typography} from "antd";
 import {useDataContext} from "../dataProvider/DataProvider";
 import {DashboardUtils} from "./DashboardUtils";
@@ -9,33 +8,38 @@ import {DataProviderUtils} from "../dataProvider/DataProviderUtils";
 import {CalculationUtils} from "../dataProvider/CalculationUtils";
 import {SummaryRealtimeSimpleMetricWrapperLabelComponent} from "./SummaryRealtimeSimpleMetricWrapperLabelComponent";
 import {PrecalculatedRealtimeDataProviderCalculator} from "../dataProvider/PrecalculatedRealtimeDataProviderCalculator";
-import {useConfigurationContext} from "../dataProvider/ConfigurationProvider";
+import {CanisterMetricsSource, useConfigurationContext} from "../dataProvider/ConfigurationProvider";
 import {ChartJSComponentSupplierContext, ChartJSComponentSupplierProvider} from "./ChartJSComponentSupplierProvider";
 import {ChartJSComponentWrapper} from "./ChartJSComponentWrapper";
 import {ChartDailyData as ChartJSChartDailyData, ChartHourlyDataSource, ChartJSUtils, ChartOptionsParams as ChartJSChartOptionsParams, DailyChartWithNumericEntityData as ChartJSDailyChartWithNumericEntityData} from "./ChartJSUtils";
+import {useCustomCompareEffect} from "use-custom-compare";
 
 type Props = {
     canisterId: string
 }
 
-export const CanisterSectionComponent = (props: Props) => {
+type PropsWithMetricsSource = {
+    metricsSource: Array<CanisterMetricsSource> | undefined
+}
+
+export const CanisterSectionComponentCanisterSource = (props: Props & PropsWithMetricsSource) => {
     const canisterId = props.canisterId;
 
     const configurationContext = useConfigurationContext();
     const dataContext = useDataContext();
 
+    const metricsSource = props.metricsSource
+
     const canisterError = dataContext.error[canisterId]
     const canisterInProgress = dataContext.status[canisterId]?.inProgress
 
-    useEffect(() => {
-        dataContext.getCanisterMetrics([
-            DashboardUtils.getCanisterMetricsHourlyDashboardParams(canisterId),
-            DashboardUtils.getCanisterMetricsDailyDashboardParams(canisterId)
-        ])
-    }, [dataContext.getCanisterMetrics, dataContext.collectCanisterMetrics, canisterId])
+    useCustomCompareEffect(() => {
+        dataContext.getCanisterMetrics(DashboardUtils.getCanisterPageParams(canisterId, metricsSource))
+    }, [dataContext.getCanisterMetrics, canisterId, metricsSource], (prevDeps, nextDeps) => _.isEqual(prevDeps, nextDeps))
 
     const dataHourly = dataContext.dataHourly;
     const dataDaily = dataContext.dataDaily;
+
     const canisterUpdateCallsAggregatedDataHourly: Array<ChartHourlyDataSource> | undefined = DataProviderUtils.getDataHourlyMetrics(dataHourly, canisterId)?.map<ChartHourlyDataSource>(value => ({timeMillis: value.timeMillis, values: value.updateCalls}));
     const canisterCyclesAggregatedDataHourly: Array<ChartHourlyDataSource> | undefined = DataProviderUtils.getDataHourlyMetrics(dataHourly, canisterId)?.map<ChartHourlyDataSource>(value => ({timeMillis: value.timeMillis, values: value.canisterCycles}));
     const canisterMemoryAggregatedDataHourly: Array<ChartHourlyDataSource> | undefined = DataProviderUtils.getDataHourlyMetrics(dataHourly, canisterId)?.map<ChartHourlyDataSource>(value => ({timeMillis: value.timeMillis, values: value.canisterMemorySize}));
@@ -255,4 +259,58 @@ export const CanisterSectionComponent = (props: Props) => {
             </Row>
         </PageHeader>
     </>
+}
+
+export const CanisterSectionComponentBlackholeSource = (props: Props & PropsWithMetricsSource) => {
+    const canisterId = props.canisterId;
+
+    const configurationContext = useConfigurationContext();
+    const dataContext = useDataContext();
+
+    const configuration = configurationContext.configuration;
+    const metricsSource = props.metricsSource
+
+    const canisterInProgress = dataContext.status[canisterId]?.inProgress
+
+    useCustomCompareEffect(() => {
+        dataContext.getCanisterMetrics(DashboardUtils.getCanisterPageParams(canisterId, metricsSource))
+    }, [dataContext.getCanisterMetrics, canisterId, metricsSource], (prevDeps, nextDeps) => _.isEqual(prevDeps, nextDeps))
+
+    const dataBlackhole = dataContext.dataBlackhole;
+
+    const currentCyclesMetricWrapper = PrecalculatedRealtimeDataProviderCalculator.getCyclesMetricWrapperFromBlackholeData(dataBlackhole[canisterId], configuration);
+    const currentMemoryMetricWrapper = PrecalculatedRealtimeDataProviderCalculator.getMemoryMetricWrapperFromBlackholeData(dataBlackhole[canisterId], configuration);
+    return <>
+        <CanisterMetricsErrorPageAlert error={dataContext.error}/>
+        <PageHeader title={<>Today {canisterInProgress ? <Spin size={"small"} style={{marginLeft: "15px"}}/> : null}</>}>
+            <Row>
+                <Col span={24}>
+                    <Descriptions column={6} size={"small"}>
+                        <Descriptions.Item><Typography.Title level={5}>Cycles</Typography.Title></Descriptions.Item>
+                        <Descriptions.Item label="Current"><SummaryRealtimeSimpleMetricWrapperLabelComponent metricWrapper={currentCyclesMetricWrapper}/></Descriptions.Item>
+                    </Descriptions>
+                </Col>
+                <Col span={24}>
+                    <Descriptions column={6} size={"small"}>
+                        <Descriptions.Item><Typography.Title level={5}>Memory</Typography.Title></Descriptions.Item>
+                        <Descriptions.Item label="Current"><SummaryRealtimeSimpleMetricWrapperLabelComponent metricWrapper={currentMemoryMetricWrapper}/></Descriptions.Item>
+                    </Descriptions>
+                </Col>
+            </Row>
+        </PageHeader>
+    </>
+}
+
+export const CanisterSectionComponent = (props: Props) => {
+    const canisterId = props.canisterId;
+
+    const configurationContext = useConfigurationContext();
+
+    const metricsSource = configurationContext.configuration.canisters.find(v => v.canisterId == canisterId)?.metricsSource
+    if (DashboardUtils.isMetricsSourceCanister(metricsSource)) {
+        return <CanisterSectionComponentCanisterSource canisterId={props.canisterId} metricsSource={metricsSource}/>
+    } else if (DashboardUtils.isMetricsSourceBlackhole(metricsSource)) {
+        return <CanisterSectionComponentBlackholeSource canisterId={props.canisterId} metricsSource={metricsSource}/>
+    }
+    return null
 }

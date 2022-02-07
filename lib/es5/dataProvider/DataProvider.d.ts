@@ -3,22 +3,35 @@ import { DailyMetricsData, HourlyMetricsData } from "../api/canistergeek.did";
 import { Identity } from "@dfinity/agent";
 import { CanisterId } from "./ConfigurationProvider";
 declare type Granularity = "hourly" | "daily";
-export declare type GetCanisterMetricsFnParams = {
+export declare type GetCanisterMetricsSource = "canister" | "blackhole";
+declare type GetCanisterMetricsFnParamsCommon<S extends GetCanisterMetricsSource = GetCanisterMetricsSource> = {
     canisterId: string;
+    source: S;
+};
+export declare type GetCanisterMetricsFnParamsCanister = GetCanisterMetricsFnParamsCommon<"canister"> & {
     fromMillisUTC: bigint;
     toMillisUTC: bigint;
     granularity: Granularity;
 };
+export declare type GetCanisterMetricsFnParamsBlackhole = GetCanisterMetricsFnParamsCommon<"blackhole"> & {};
+export declare type GetCanisterMetricsFnParams = GetCanisterMetricsFnParamsCanister | GetCanisterMetricsFnParamsBlackhole;
 declare type GetCanisterMetricsFn = (params: Array<GetCanisterMetricsFnParams>) => void;
 declare type CollectCanisterMetricsFnParams = {
     canisterIds: Array<string>;
 };
 declare type CollectCanisterMetricsFn = (params: CollectCanisterMetricsFnParams) => Promise<any>;
+export declare type CanisterBlackholeData = {
+    cycles: bigint;
+    memory_size: bigint;
+};
 export declare type ContextDataHourly = {
     [key: CanisterId]: Array<HourlyMetricsData>;
 };
 export declare type ContextDataDaily = {
     [key: CanisterId]: Array<DailyMetricsData>;
+};
+export declare type ContextDataBlackhole = {
+    [key: CanisterId]: CanisterBlackholeData | undefined;
 };
 declare type ContentStatus = {
     inProgress: boolean;
@@ -39,6 +52,7 @@ export interface Context {
     error: CanisterError;
     dataHourly: ContextDataHourly;
     dataDaily: ContextDataDaily;
+    dataBlackhole: ContextDataBlackhole;
     getCanisterMetrics: GetCanisterMetricsFn;
     collectCanisterMetrics: CollectCanisterMetricsFn;
 }

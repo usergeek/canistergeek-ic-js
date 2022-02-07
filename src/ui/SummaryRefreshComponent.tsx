@@ -16,7 +16,7 @@ export const SummaryRefreshComponent = () => {
     })
 
     const onClick = useCallback(() => {
-        dataContext.getCanisterMetrics(configurationContext.configuration.canisters.map(canister => DashboardUtils.getCanisterMetricsHourlyDashboardParams(canister.canisterId)))
+        dataContext.getCanisterMetrics(DashboardUtils.getSummaryPageParams(configurationContext.configuration.canisters))
     }, [dataContext.getCanisterMetrics])
 
     return <Button icon={<ReloadOutlined/>} onClick={onClick} disabled={inProgress} loading={inProgress}/>

@@ -18,7 +18,7 @@ export const SummarySectionComponent = () => {
     const atLeastOneCanisterLoaded = _.some(dataContext.status, value => value.loaded);
 
     useEffect(() => {
-        dataContext.getCanisterMetrics(configurationContext.configuration.canisters.map(canister => DashboardUtils.getCanisterMetricsHourlyDashboardParams(canister.canisterId)))
+        dataContext.getCanisterMetrics(DashboardUtils.getSummaryPageParams(configurationContext.configuration.canisters))
     }, [dataContext.collectCanisterMetrics, dataContext.getCanisterMetrics])
 
     if (!atLeastOneCanisterLoaded) {

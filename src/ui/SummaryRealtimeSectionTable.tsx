@@ -9,6 +9,8 @@ import {SummaryPageRealtimeSectionData, usePrecalculatedRealtimeDataContext} fro
 import {SummaryRealtimeLineProgressWithOutdatedInfo} from "./SummaryRealtimeLineProgressWithOutdatedInfo";
 import {useURLPathContext} from "./URLPathProvider";
 
+type TableItemType = { canister: Canister, data: SummaryPageRealtimeSectionData }
+
 export const SummaryRealtimeSectionTable = () => {
     const urlPathContext = useURLPathContext();
     const configurationContext = useConfigurationContext();
@@ -17,10 +19,12 @@ export const SummaryRealtimeSectionTable = () => {
     const inProgress = _.some(dataContext.status, value => {
         return value.inProgress
     });
-    type TableItemType = { canister: Canister, data?: SummaryPageRealtimeSectionData }
-    const precalculatedDataArray: Array<TableItemType> = configurationContext.configuration.canisters.map(canister => {
-        return {canister: canister, data: precalculatedRealtimeDataContext.precalculatedData[canister.canisterId]}
-    })
+    const precalculatedDataArray: Array<TableItemType> = _.compact(_.map<Canister, TableItemType>(configurationContext.configuration.canisters, (canister) => {
+        const data = precalculatedRealtimeDataContext.precalculatedData[canister.canisterId];
+        if (data) {
+            return {canister: canister, data: data} as TableItemType
+        }
+    }))
     return <>
         <Table dataSource={precalculatedDataArray} pagination={{hideOnSinglePage: true, defaultPageSize: 20}} size={"small"} rowKey={record => record.canister.canisterId} loading={inProgress}>
             <Table.Column<TableItemType> title={"Canister"} width={"16%"} key="Canister" render={(text, record) => {
@@ -28,15 +32,18 @@ export const SummaryRealtimeSectionTable = () => {
                 return <Link to={urlPathContext.pathToSection(record.canister.canisterId)}><span style={{fontSize: "1em", fontWeight: "bold"}}>{canisterName}</span></Link>
             }}/>
             <Table.Column<TableItemType> title={"Cycles"} key="Cycles" width={"28%"} render={(text, record) => {
-                return <SummaryRealtimeSimpleMetricWrapperLabelComponent metricWrapper={record.data?.cycles}/>
+                return <SummaryRealtimeSimpleMetricWrapperLabelComponent metricWrapper={record.data.cycles}/>
             }}/>
             <Table.Column<TableItemType> title={"Memory"} key="Memory2" width={"28%"} render={(text, record) => {
-                const value = record.data?.memory;
+                const value = record.data.memory;
                 return <SummaryRealtimeLineProgressWithOutdatedInfo<number> metricWrapper={value}/>
             }}/>
-            <Table.Column<TableItemType> title={"Heap Memory"} key="Heap Memory2" width={"28%"} render={(text, record) => {
-                const value = record.data?.heapMemory;
-                return <SummaryRealtimeLineProgressWithOutdatedInfo<number> metricWrapper={value}/>
+            <Table.Column<TableItemType> title={"Heap Memory"} key="Heap Memory2" width={"28%"} render={(text, record: TableItemType) => {
+                if (record.data.metricsSource == "canister") {
+                    const value = record.data.heapMemory;
+                    return <SummaryRealtimeLineProgressWithOutdatedInfo<number> metricWrapper={value}/>
+                }
+                return null
             }}/>
         </Table>
     </>

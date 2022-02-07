@@ -9,6 +9,8 @@ type Props = {
     configURL: string
     githubMotokoLibraryURL: string
     githubMotokoLibraryLimitAccessURL: string
+    githubRustLibraryURL: string
+    githubRustLibraryLimitAccessURL: string
 }
 
 export const EmptyConfigurationPage = (props: Props) => {
@@ -28,8 +30,8 @@ export const EmptyConfigurationPage = (props: Props) => {
                         <Col>
                             <div style={{textAlign: "left", marginTop: "25px"}}>
                                 <ol style={{padding: 0, listStylePosition: "outside"}}>
-                                    <li style={{paddingLeft: "10px"}}>Integrate <a href={props.githubMotokoLibraryURL} target={"_blank"}>Motoko Library</a> into your canisters</li>
-                                    <li style={{paddingLeft: "10px"}}><b>HIGHLY RECOMMENDED</b>:<br/>Limit access to your data only to specific principals.<br/>More information <a href={props.githubMotokoLibraryLimitAccessURL} target={"_blank"}>here</a></li>
+                                    <li style={{paddingLeft: "10px"}}>Integrate <a href={props.githubMotokoLibraryURL} target={"_blank"}>Motoko</a> or <a href={props.githubRustLibraryURL} target={"_blank"}>Rust</a> library into your canisters</li>
+                                    <li style={{paddingLeft: "10px"}}><b>HIGHLY RECOMMENDED</b>:<br/>Limit access to your data only to specific principals.<br/>More information <a href={props.githubMotokoLibraryLimitAccessURL} target={"_blank"}>here</a> or <a href={props.githubRustLibraryLimitAccessURL} target={"_blank"}>here</a></li>
                                     <li style={{paddingLeft: "10px"}}>Set up configuration: provide list of canister principals</li>
                                 </ol>
                             </div>

@@ -39,6 +39,8 @@ const ChartJS = React.memo((props: ChartProps) => {
     return _.isEqual(prevProps, nextProps)
 })
 
+type TableItemType = { canister: Canister, data: SummaryPageTrendSectionData | undefined }
+
 export const SummaryTrendSectionTable = () => {
     const urlPathContext = useURLPathContext();
     const configurationContext = useConfigurationContext();
@@ -47,13 +49,12 @@ export const SummaryTrendSectionTable = () => {
 
     const inProgress = _.some(dataContext.status, value => value.inProgress);
 
-    type TableItemType = { canister: Canister, data: SummaryPageTrendSectionData | undefined }
-    let precalculatedDataArray: Array<TableItemType> = configurationContext.configuration.canisters.map(canister => {
-        return {
-            canister: canister,
-            data: precalculatedTrendDataContext.precalculatedData[canister.canisterId]
+    let precalculatedDataArray: Array<TableItemType> = _.compact(_.map<Canister, TableItemType>(configurationContext.configuration.canisters, canister => {
+        const data = precalculatedTrendDataContext.precalculatedData[canister.canisterId];
+        if (data) {
+            return {canister: canister, data: data} as TableItemType
         }
-    })
+    }))
 
     return <>
         <Table dataSource={precalculatedDataArray} pagination={{hideOnSinglePage: true, defaultPageSize: 20}} size={"small"} rowKey={record => record.canister.canisterId} loading={inProgress}>
@@ -62,13 +63,13 @@ export const SummaryTrendSectionTable = () => {
                 return <Link to={urlPathContext.pathToSection(record.canister.canisterId)}><span style={{fontSize: "1em", fontWeight: "bold"}}>{canisterName}</span></Link>
             }}/>
             <Table.Column<TableItemType> title={"Update Calls"} key="Update Calls" width={"28%"} render={(text, record) => {
-                return <ChartJS shiftsData={record.data?.shiftsData.updateCalls} tooltipValuePrefix={"Update Calls"} yAxisMin={0}/>
+                return <ChartJS shiftsData={record.data.shiftsData.updateCalls} tooltipValuePrefix={"Update Calls"} yAxisMin={0}/>
             }}/>
             <Table.Column<TableItemType> title={"Cycles Difference"} key="Cycles" width={"28%"} render={(text, record) => {
-                return <ChartJS shiftsData={record.data?.shiftsData.cycles.difference} tooltipValuePrefix={"Cycles Difference"}/>
+                return <ChartJS shiftsData={record.data.shiftsData.cycles.difference} tooltipValuePrefix={"Cycles Difference"}/>
             }}/>
             <Table.Column<TableItemType> title={"Memory Difference"} key="Memory" width={"28%"} render={(text, record) => {
-                return <ChartJS shiftsData={record.data?.shiftsData.memoryDifference} tooltipValuePrefix={"Memory Difference"} tooltipValuePostfix={" bytes"}/>
+                return <ChartJS shiftsData={record.data.shiftsData.memoryDifference} tooltipValuePrefix={"Memory Difference"} tooltipValuePostfix={" bytes"}/>
             }}/>
         </Table>
     </>

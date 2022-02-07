@@ -10,8 +10,9 @@ export const exampleConfiguration: Configuration = {
             name: "nns/identity"
         },
         {
-            canisterId: "ryjl3-tyaaa-aaaaa-aaaba-cai",
-            name: "nns/ledger"
+            canisterId: "e3mmv-5qaaa-aaaah-aadma-cai",
+            name: "assetCanister",
+            metricsSource: ["blackhole"]
         }
     ],
     metrics: {
@@ -123,12 +124,13 @@ export const exampleConfigurationJSON = JSON.stringify(exampleConfiguration, nul
 const jsonExampleString = "{\n" +
     "    canisters: [\n" +
     "        {\n" +
-    "            canisterId: \"rdmx6-jaaaa-aaaaa-aaadq-cai\",\n" +
+    "            canisterId: \"rdmx6-jaaaa-aaaaa-aaadq-cai\", // regular motoko/rust canister\n" +
     "            name: \"nns/identity\"\n" +
     "        },\n" +
     "        {\n" +
-    "            canisterId: \"ryjl3-tyaaa-aaaaa-aaaba-cai\",\n" +
-    "            name: \"nns/ledger\"\n" +
+    "            canisterId: \"e3mmv-5qaaa-aaaah-aadma-cai\", // canister with public status using blackhole canister (https://github.com/ninegua/ic-blackhole). Useful to monitor asset canisters.\n" +
+    "            name: \"assetCanister\",\n" +
+    "            metricsSource: [\"blackhole\"]\n" +
     "        }\n" +
     "    ],\n" +
     "    metrics: {\n" +

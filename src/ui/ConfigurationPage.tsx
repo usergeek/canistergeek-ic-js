@@ -24,12 +24,19 @@ export const ConfigurationPage = () => {
         return ""
     })
     const [textareaHasValidJSON, setTextareaHasValidJSON] = useState<boolean>(() => {
-        return ConfigurationValidator.validateConfiguration(textareaValue)
+        const {valid} = ConfigurationValidator.validateConfiguration(textareaValue)
+        return valid
+    })
+
+    const [textareaValidationError, setTextareaValidationError] = useState<Error | undefined>(() => {
+        const {error} = ConfigurationValidator.validateConfiguration(textareaValue)
+        return error
     })
 
     const onChange = useCallback((value: string) => {
-        const valid = ConfigurationValidator.validateConfiguration(value)
+        const {valid, error} = ConfigurationValidator.validateConfiguration(value)
         setTextareaHasValidJSON(valid)
+        setTextareaValidationError(error)
         setTextareaValue(value)
     }, [])
 
@@ -42,6 +49,8 @@ export const ConfigurationPage = () => {
         onChange(exampleConfigurationJSON)
     }, [])
 
+    const errorMessage: string = textareaValidationError ? textareaValidationError.message : null
+
     return <>
         <PageHeader title={`${PRODUCT_NAME}: Configuration`}/>
         <PageContent>
@@ -51,10 +60,11 @@ export const ConfigurationPage = () => {
                 <Space direction={"vertical"} style={{width: "100%"}}>
                     <Alert type={"warning"} message={<>Configuration is stored in browser's <b>localStorage only</b>.</>}/>
                     <ConfigurationTextarea height={350} onChange={onChange} value={textareaValue}/>
-                    <Row>
+                    <Row align={"middle"} gutter={16}>
                         <Col>
                             <Button type={"primary"} onClick={onClickSave} disabled={!textareaHasValidJSON}>Save</Button>
                         </Col>
+                        <Col style={{color: "red"}}>{errorMessage}</Col>
                         <Col flex={"auto"}>
                             <Row justify={"end"}><Col><Button onClick={onClickExample}>Example</Button></Col></Row>
                         </Col>

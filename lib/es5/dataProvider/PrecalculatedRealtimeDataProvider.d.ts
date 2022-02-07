@@ -1,12 +1,13 @@
 import * as React from "react";
 import { PropsWithChildren } from "react";
 import { MetricWrapper } from "./PrecalculatedDataProvider";
-import { CanisterId } from "./ConfigurationProvider";
+import { CanisterId, CanisterMetricsSource } from "./ConfigurationProvider";
 export declare type SummaryPageRealtimeSectionData = {
     canisterId: string;
-    cycles: MetricWrapper<number>;
-    memory: MetricWrapper<number>;
-    heapMemory: MetricWrapper<number>;
+    metricsSource: CanisterMetricsSource;
+    cycles?: MetricWrapper<number>;
+    memory?: MetricWrapper<number>;
+    heapMemory?: MetricWrapper<number>;
 };
 export declare type PrecalculatedData = {
     [key: CanisterId]: SummaryPageRealtimeSectionData;

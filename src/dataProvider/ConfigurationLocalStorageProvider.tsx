@@ -51,7 +51,7 @@ const readConfigurationFromLocalStorage = (): Configuration | undefined => {
         const value = localStorage.getItem(LOCAL_STORAGE__KEY__CONFIGURATION);
         if (value) {
             let parsed: Configuration = JSON.parse(value) as Configuration;
-            const valid = ConfigurationValidator.validateConfiguration(parsed)
+            const {valid} = ConfigurationValidator.validateConfiguration(parsed)
             if (valid) {
                 return parsed
             }

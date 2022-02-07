@@ -1,5 +1,5 @@
-import {ContextDataHourly} from "./DataProvider";
-import {Configuration, MetricsFormat, MetricsThresholds} from "./ConfigurationProvider";
+import {CanisterBlackholeData, ContextDataBlackhole, ContextDataHourly} from "./DataProvider";
+import {Canister, Configuration, MetricsFormat, MetricsThresholds} from "./ConfigurationProvider";
 import _ from "lodash";
 import {DateUtils} from "./DateUtils";
 import {DataProviderUtils} from "../dataProvider/DataProviderUtils";
@@ -80,6 +80,60 @@ const getCyclesMetricWrapperFromHourlyMetricsData = (data: HourlyMetricsData | u
             hasValue: value > 0,
             label: valueFormatted,
             colorHex: colorHex,
+            metricsThresholds: thresholds,
+            outdatedContext: outdatedContext
+        }
+    }
+}
+
+const getCyclesMetricWrapperFromBlackholeData = (data: CanisterBlackholeData | undefined, configuration: Configuration): MetricWrapper<number> | undefined => {
+    if (data) {
+        return getMetricWrapperFromValue(data.cycles, configuration.metrics?.cycles?.metricsFormat, configuration.metrics?.cycles?.thresholds)
+    }
+}
+
+const getMemoryMetricWrapperFromBlackholeData = (data: CanisterBlackholeData | undefined, configuration: Configuration): MetricWrapper<number> | undefined => {
+    if (data) {
+        const thresholds = configuration.metrics?.memory?.thresholds;
+        let value = Number(data.memory_size)
+        let outdatedContext: MetricOutdatedContext | undefined = undefined
+        const valueFormatted = PrecalculatedDataProviderUtils.Formatter.formatSignificantNumericValue(value, configuration.metrics?.memory?.metricsFormat);
+        let colorHex: string | undefined = undefined
+        let percentFromMax: number | undefined = undefined
+        if (thresholds) {
+            if (thresholds.steps) {
+                for (let i = thresholds.steps.length - 1; i >= 0; i--) {
+                    const step = thresholds.steps[i];
+                    if (value >= step.value) {
+                        colorHex = step.colorHex
+                        break
+                    }
+                }
+            }
+            if (!colorHex) {
+                if (value > 0) {
+                    colorHex = thresholds.base.colorHex
+                } else {
+                    colorHex = COLOR_GRAY_HEX
+                }
+            }
+        }
+        const limitations = configuration.metrics?.memory?.limitations?.hourly;
+        if (limitations?.maxValue) {
+            percentFromMax = (value / limitations.maxValue) * 100
+            if (value > 0 && limitations.percentFromMaxMinValue) {
+                if (percentFromMax < limitations.percentFromMaxMinValue) {
+                    percentFromMax = limitations.percentFromMaxMinValue
+                }
+            }
+        }
+
+        return {
+            value: value,
+            hasValue: value > 0,
+            label: valueFormatted,
+            colorHex: colorHex,
+            percentFromMax: percentFromMax,
             metricsThresholds: thresholds,
             outdatedContext: outdatedContext
         }
@@ -238,24 +292,38 @@ const getMetricWrapperFromValue = (value: number | bigint | undefined = 0, metri
     }
 }
 
-const getPrecalculatedData = (dataHourly: ContextDataHourly, configuration: Configuration): PrecalculatedData => {
-    return _.mapKeys<SummaryPageRealtimeSectionData>(_.compact<SummaryPageRealtimeSectionData>(_.map<ContextDataHourly, SummaryPageRealtimeSectionData | undefined>(dataHourly, (hourlyMetricsData, canisterId) => {
-        const data = _.last(hourlyMetricsData)
-        if (data) {
+const getPrecalculatedData = (dataHourly: ContextDataHourly, dataBlackhole: ContextDataBlackhole, configuration: Configuration): PrecalculatedData => {
+    return _.mapKeys<SummaryPageRealtimeSectionData>(_.compact<SummaryPageRealtimeSectionData>(_.map<Canister, SummaryPageRealtimeSectionData | undefined>(configuration.canisters, (canister: Canister) => {
+        const canisterId = canister.canisterId;
+        const hourlyMetricsData = _.last(dataHourly[canisterId])
+        if (hourlyMetricsData) {
             //Cycles
-            const cyclesMetricWrapper = getCyclesMetricWrapperFromHourlyMetricsData(data, configuration)
+            const cyclesMetricWrapper = getCyclesMetricWrapperFromHourlyMetricsData(hourlyMetricsData, configuration)
 
             //Memory
-            const memoryMetricWrapper = getMemoryMetricWrapperFromHourlyMetricsData(data, configuration)
+            const memoryMetricWrapper = getMemoryMetricWrapperFromHourlyMetricsData(hourlyMetricsData, configuration)
 
             //Heap Memory
-            const heapMemoryMetricWrapper = getHeapMemoryMetricWrapperFromHourlyMetricsData(data, configuration)
+            const heapMemoryMetricWrapper = getHeapMemoryMetricWrapperFromHourlyMetricsData(hourlyMetricsData, configuration)
 
             const canisterPrecalculatedData: SummaryPageRealtimeSectionData = {
                 canisterId: canisterId,
-                cycles: cyclesMetricWrapper!,
-                memory: memoryMetricWrapper!,
-                heapMemory: heapMemoryMetricWrapper!,
+                metricsSource: "canister",
+                cycles: cyclesMetricWrapper,
+                memory: memoryMetricWrapper,
+                heapMemory: heapMemoryMetricWrapper,
+            }
+            return canisterPrecalculatedData
+        }
+
+        const blackholeData = dataBlackhole[canisterId]
+        if (blackholeData) {
+            const canisterPrecalculatedData: SummaryPageRealtimeSectionData = {
+                canisterId: canisterId,
+                metricsSource: "blackhole",
+                cycles: getCyclesMetricWrapperFromBlackholeData(blackholeData, configuration),
+                memory: getMemoryMetricWrapperFromBlackholeData(blackholeData, configuration),
+                heapMemory: undefined,
             }
             return canisterPrecalculatedData
         }
@@ -267,6 +335,8 @@ export const PrecalculatedRealtimeDataProviderCalculator = {
     getUpdateCallsMetricWrapperFromHourlyMetricsData: getUpdateCallsMetricWrapperFromHourlyMetricsData,
     getCyclesMetricWrapperFromHourlyMetricsData: getCyclesMetricWrapperFromHourlyMetricsData,
     getMemoryMetricWrapperFromHourlyMetricsData: getMemoryMetricWrapperFromHourlyMetricsData,
+    getCyclesMetricWrapperFromBlackholeData: getCyclesMetricWrapperFromBlackholeData,
+    getMemoryMetricWrapperFromBlackholeData: getMemoryMetricWrapperFromBlackholeData,
     getHeapMemoryMetricWrapperFromHourlyMetricsData: getHeapMemoryMetricWrapperFromHourlyMetricsData,
     getMetricWrapperFromValue: getMetricWrapperFromValue,
 }

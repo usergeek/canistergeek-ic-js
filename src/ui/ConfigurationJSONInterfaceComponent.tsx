@@ -2,10 +2,12 @@ import * as React from "react";
 import {Typography} from "antd";
 
 const interfaceString = "export type CanisterId = string\n" +
+    "export type CanisterMetricsSource = \"canister\" | \"blackhole\"\n" +
     "\n" +
     "export type Canister = {\n" +
     "    canisterId: CanisterId\n" +
-    "    name?: string\n" +
+    "    name?: string,\n" +
+    "    metricsSource?: Array<CanisterMetricsSource>\n" +
     "}\n" +
     "\n" +
     "type ThresholdStep = {\n" +
