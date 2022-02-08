@@ -73,7 +73,7 @@ export type Configuration = {
 
 **Full JSON example with comments**
 
-```json
+```
 const MEMORY_MAX_PER_CANISTER = 2 * 1024 * 1024 * 1024 // 2Gb
 
 {
