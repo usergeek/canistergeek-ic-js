@@ -2,6 +2,7 @@ import { PropsWithChildren } from "react";
 import { DailyMetricsData, HourlyMetricsData } from "../api/canistergeek.did";
 import { Identity } from "@dfinity/agent";
 import { CanisterId } from "./ConfigurationProvider";
+import { CGErrorByKey, CGStatusByKey } from "./Commons";
 declare type Granularity = "hourly" | "daily";
 export declare type GetCanisterMetricsSource = "canister" | "blackhole";
 declare type GetCanisterMetricsFnParamsCommon<S extends GetCanisterMetricsSource = GetCanisterMetricsSource> = {
@@ -25,31 +26,17 @@ export declare type CanisterBlackholeData = {
     memory_size: bigint;
 };
 export declare type ContextDataHourly = {
-    [key: CanisterId]: Array<HourlyMetricsData>;
+    [key: CanisterId]: Array<HourlyMetricsData> | undefined;
 };
 export declare type ContextDataDaily = {
-    [key: CanisterId]: Array<DailyMetricsData>;
+    [key: CanisterId]: Array<DailyMetricsData> | undefined;
 };
 export declare type ContextDataBlackhole = {
     [key: CanisterId]: CanisterBlackholeData | undefined;
 };
-declare type ContentStatus = {
-    inProgress: boolean;
-    loaded: boolean;
-};
-declare type CanisterStatus = {
-    [key: CanisterId]: ContentStatus;
-};
-declare type ContentError = {
-    isError: boolean;
-    error?: Error;
-};
-export declare type CanisterError = {
-    [key: CanisterId]: ContentError;
-};
 export interface Context {
-    status: CanisterStatus;
-    error: CanisterError;
+    status: CGStatusByKey;
+    error: CGErrorByKey;
     dataHourly: ContextDataHourly;
     dataDaily: ContextDataDaily;
     dataBlackhole: ContextDataBlackhole;

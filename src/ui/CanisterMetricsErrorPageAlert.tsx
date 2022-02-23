@@ -1,10 +1,10 @@
 import * as React from "react";
-import {CanisterError} from "../dataProvider/DataProvider";
 import _ from "lodash";
 import {PageContentAlert} from "./PageContentAlert";
 import {QueryCallRejectedError} from "@dfinity/agent";
 import {Typography} from "antd";
 import {EllipsisConfig} from "antd/lib/typography/Base";
+import {CGErrorByKey} from "../dataProvider/Commons";
 
 const paragraphEllipsisConfig: EllipsisConfig = {
     rows: 1,
@@ -13,7 +13,7 @@ const paragraphEllipsisConfig: EllipsisConfig = {
 };
 
 type Props = {
-    error: CanisterError
+    error: CGErrorByKey
 }
 
 export const CanisterMetricsErrorPageAlert = (props: Props) => {

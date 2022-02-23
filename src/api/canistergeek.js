@@ -40,11 +40,59 @@ const idlFactory = ({IDL}) => {
         'daily': IDL.Vec(DailyMetricsData),
     });
     const CanisterMetrics = IDL.Record({'data': CanisterMetricsData});
+    const GetLogMessagesFilter = IDL.Record({
+        'messageRegex': IDL.Opt(IDL.Text),
+        'analyzeCount': IDL.Nat32,
+        'messageContains': IDL.Opt(IDL.Text),
+    });
+    const Nanos = IDL.Nat64;
+    const GetLogMessagesParameters = IDL.Record({
+        'count': IDL.Nat32,
+        'filter': IDL.Opt(GetLogMessagesFilter),
+        'fromTimeNanos': IDL.Opt(Nanos),
+    });
+    const GetLatestLogMessagesParameters = IDL.Record({
+        'upToTimeNanos': IDL.Opt(Nanos),
+        'count': IDL.Nat32,
+        'filter': IDL.Opt(GetLogMessagesFilter),
+    });
+    const CanisterLogRequest = IDL.Variant({
+        'getMessagesInfo': IDL.Null,
+        'getMessages': GetLogMessagesParameters,
+        'getLatestMessages': GetLatestLogMessagesParameters,
+    });
+    const CanisterLogFeature = IDL.Variant({
+        'filterMessageByContains': IDL.Null,
+        'filterMessageByRegex': IDL.Null,
+    });
+    const CanisterLogMessagesInfo = IDL.Record({
+        'features': IDL.Vec(IDL.Opt(CanisterLogFeature)),
+        'lastTimeNanos': IDL.Opt(Nanos),
+        'count': IDL.Nat32,
+        'firstTimeNanos': IDL.Opt(Nanos),
+    });
+    const LogMessagesData = IDL.Record({
+        'timeNanos': Nanos,
+        'message': IDL.Text,
+    });
+    const CanisterLogMessages = IDL.Record({
+        'data': IDL.Vec(LogMessagesData),
+        'lastAnalyzedMessageTimeNanos': IDL.Opt(Nanos),
+    });
+    const CanisterLogResponse = IDL.Variant({
+        'messagesInfo': CanisterLogMessagesInfo,
+        'messages': CanisterLogMessages,
+    });
     return IDL.Service({
         'collectCanisterMetrics': IDL.Func([], [], []),
         'getCanisterMetrics': IDL.Func(
             [GetMetricsParameters],
             [IDL.Opt(CanisterMetrics)],
+            ['query'],
+        ),
+        'getCanisterLog': IDL.Func(
+            [IDL.Opt(CanisterLogRequest)],
+            [IDL.Opt(CanisterLogResponse)],
             ['query'],
         ),
     });

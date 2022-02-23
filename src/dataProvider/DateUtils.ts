@@ -49,6 +49,9 @@ const formatDifferencesBetweenToMillis = (diff: DateDifference): string => {
     if (diff.minutes > 0) {
         result.push(`${diff.minutes}m`)
     }
+    if (result.length == 0 && diff.seconds > 0) {
+        result.push(`${diff.seconds}s`)
+    }
     return result.join(" ")
 }
 

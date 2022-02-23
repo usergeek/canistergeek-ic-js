@@ -1,6 +1,6 @@
 import * as React from "react";
 import {useCallback, useState} from "react";
-import {Alert, Button, Col, Collapse, PageHeader, Row, Space} from "antd";
+import {Alert, Button, Col, Collapse, PageHeader, Popconfirm, Row, Space} from "antd";
 import {ConfigurationTextarea} from "./ConfigurationTextarea";
 import {ConfigurationJSONInterfaceComponent} from "./ConfigurationJSONInterfaceComponent";
 import {ConfigurationJSONExampleComponent, exampleConfigurationJSON} from "./ConfigurationJSONExampleComponent";
@@ -42,7 +42,7 @@ export const ConfigurationPage = () => {
 
     const onClickSave = useCallback(() => {
         configurationStorageContext.storeConfiguration(JSON.parse(textareaValue) as Configuration)
-        history.push(urlPathContext.pathToSection("summary"))
+        history.push(urlPathContext.pathToMetricsSection("summary"))
     }, [textareaValue])
 
     const onClickExample = useCallback(() => {
@@ -51,8 +51,20 @@ export const ConfigurationPage = () => {
 
     const errorMessage: string = textareaValidationError ? textareaValidationError.message : null
 
+    const exampleButton = textareaValue.length == 0 ?
+        <Button onClick={onClickExample}>Example</Button> :
+        <Popconfirm
+            title="Are you sure to overwrite configuration with example?"
+            onConfirm={onClickExample}
+            okText="Yes"
+            okButtonProps={{type: "default"}}
+            cancelText="No"
+            cancelButtonProps={{type: "primary"}}
+            placement="topRight">
+            <Button>Example</Button>
+        </Popconfirm>
     return <>
-        <PageHeader title={`${PRODUCT_NAME}: Configuration`}/>
+        <PageHeader title={`${PRODUCT_NAME}: Settings`}/>
         <PageContent>
             <PageContent.CardSpacer/>
             <PageContent.Card>
@@ -66,7 +78,7 @@ export const ConfigurationPage = () => {
                         </Col>
                         <Col style={{color: "red"}}>{errorMessage}</Col>
                         <Col flex={"auto"}>
-                            <Row justify={"end"}><Col><Button onClick={onClickExample}>Example</Button></Col></Row>
+                            <Row justify={"end"}><Col>{exampleButton}</Col></Row>
                         </Col>
                     </Row>
                 </Space>

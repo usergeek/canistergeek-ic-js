@@ -1,6 +1,6 @@
 {
   "name": "canistergeek-ic-js",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Canistergeek Javascript Library",
   "main": "./lib/es5/index.js",
   "author": "Canistergeek <support@usergeek.com>",
@@ -15,9 +15,9 @@
   "scripts": {
     "clean": "rm -rf lib",
     "prebuild": "npm run clean",
-    "build": "tsc --project tsconfig.json && npm run copy_did && npm run copy_css",
+    "build": "tsc --project tsconfig.json && npm run copy_did && npm run copy_less",
     "copy_did": "cp src/api/*.did.d.ts lib/es5/api",
-    "copy_css": "cp src/ui/*.css lib/es5/ui"
+    "copy_less": "cp src/ui/*.less lib/es5/ui"
   },
   "dependencies": {
     "@dfinity/agent": "^0.10.2",

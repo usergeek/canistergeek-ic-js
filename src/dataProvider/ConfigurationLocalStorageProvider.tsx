@@ -2,6 +2,7 @@ import * as React from "react";
 import {PropsWithChildren, useCallback, useState} from "react";
 import {Configuration} from "./ConfigurationProvider";
 import {ConfigurationValidator} from "./ConfigurationValidator";
+import {KeyValueStoreFacade} from "../store/KeyValueStoreFacade";
 import {useCustomCompareMemo} from "use-custom-compare";
 import _ from "lodash";
 
@@ -21,13 +22,14 @@ export const useConfigurationStorageContext = () => {
     return context;
 }
 
-const LOCAL_STORAGE__KEY__CONFIGURATION = "canistergeek__key__configuration"
+const keyValueStore = KeyValueStoreFacade.createStore("canistergeek__");
+const LOCAL_STORAGE__KEY__CONFIGURATION = "key__configuration"
 
 export const ConfigurationLocalStorageProvider = (props: PropsWithChildren<any>) => {
     const [configuration, setConfiguration] = useState<Configuration | undefined>(() => readConfigurationFromLocalStorage())
 
     const storeConfiguration = useCallback<StoreConfigurationFn>((value: Configuration) => {
-        localStorage.setItem(LOCAL_STORAGE__KEY__CONFIGURATION, JSON.stringify(value))
+        keyValueStore.set(LOCAL_STORAGE__KEY__CONFIGURATION, value)
         setConfiguration(value)
     }, [])
 
@@ -48,13 +50,10 @@ export const ConfigurationLocalStorageProvider = (props: PropsWithChildren<any>)
 
 const readConfigurationFromLocalStorage = (): Configuration | undefined => {
     try {
-        const value = localStorage.getItem(LOCAL_STORAGE__KEY__CONFIGURATION);
-        if (value) {
-            let parsed: Configuration = JSON.parse(value) as Configuration;
-            const {valid} = ConfigurationValidator.validateConfiguration(parsed)
-            if (valid) {
-                return parsed
-            }
+        const parsed: Configuration = keyValueStore.get(LOCAL_STORAGE__KEY__CONFIGURATION) as Configuration;
+        const {valid} = ConfigurationValidator.validateConfiguration(parsed)
+        if (valid) {
+            return parsed
         }
     } catch (e) {
         console.error("Error while restoring value from localstorage", e)

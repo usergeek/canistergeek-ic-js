@@ -1,6 +1,6 @@
 # Canistergeek-IC-JS
 
-Canistergeek-IC-JS is Javascript library that fetches the monitoring data from canisters, perform all necessary calculations and displays it on a webpage.
+Canistergeek-IC-JS is Javascript library that fetches monitoring data and log messages from canisters, performs all necessary calculations and displays it on a webpage.
 
 Canistergeek-IC-JS should be used together with [Canistergeek-IC-Motoko](https://github.com/usergeek/canistergeek-ic-motoko) or [Canistergeek-IC-Rust](https://github.com/usergeek/canistergeek_ic_rust) - open-source libraries for Internet Computer to track your project canisters cycles and memory status.
 

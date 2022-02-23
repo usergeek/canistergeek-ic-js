@@ -4,7 +4,7 @@ import {ChartJSWithOptionsComponent} from "./ChartJSWithOptionsComponent";
 import {ChartJSChartComponentSupplier} from "./ChartJSChartContext";
 import {Alert, Spin} from "antd";
 
-import "./chartJSComponentWrapper.css"
+import "./chartJSComponentWrapper.less"
 
 type Props = {
     supplier: ChartJSChartComponentSupplier

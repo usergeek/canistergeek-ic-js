@@ -246,7 +246,7 @@ const getPredictionMetricsData = (hourlyMetricsData: Array<HourlyMetricsData>, p
 
 const getPrecalculatedData = (dataHourly: ContextDataHourly, configuration: Configuration): PrecalculatedData => {
     return _.mapKeys<CanisterPredictionData>(_.compact<CanisterPredictionData>(_.map<ContextDataHourly, CanisterPredictionData | undefined>(dataHourly, (hourlyMetricsData, canisterId) => {
-        if (hourlyMetricsData.length > 0) {
+        if (hourlyMetricsData && hourlyMetricsData.length > 0) {
             const metricIntervalIndexForCurrentTime = DateUtils.getMetricIntervalIndexForCurrentTime();
 
             //let's get cycle and memory differences with "day" interval (more precise prediction)

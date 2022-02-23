@@ -1,15 +1,16 @@
 import * as React from "react";
 import {PropsWithChildren, Reducer, useCallback, useReducer} from "react";
-import {CanisterMetrics, DailyMetricsData, HourlyMetricsData} from "../api/canistergeek.did";
+import {_SERVICE, CanisterMetrics, DailyMetricsData, HourlyMetricsData} from "../api/canistergeek.did";
 import {useCustomCompareMemo} from "use-custom-compare";
 import {Identity} from "@dfinity/agent";
-import {CanistergeekService} from "../api/CanistergeekService";
+import {CanistergeekService, getCandidOptional} from "../api/CanistergeekService";
 import {unstable_batchedUpdates} from "react-dom";
 import _ from "lodash"
 import {CanisterId} from "./ConfigurationProvider";
 import useIsMounted from "../util/isMounted";
 import {hasOwnProperty} from "../util/typescriptAddons";
 import {Principal} from "@dfinity/principal";
+import {CGError, CGErrorByKey, CGStatus, CGStatusByKey} from "./Commons";
 
 type Granularity = "hourly" | "daily"
 
@@ -33,18 +34,13 @@ export type CanisterBlackholeData = {
     memory_size: bigint,
 }
 
-export type ContextDataHourly = { [key: CanisterId]: Array<HourlyMetricsData> }
-export type ContextDataDaily = { [key: CanisterId]: Array<DailyMetricsData> }
+export type ContextDataHourly = { [key: CanisterId]: Array<HourlyMetricsData> | undefined }
+export type ContextDataDaily = { [key: CanisterId]: Array<DailyMetricsData> | undefined }
 export type ContextDataBlackhole = { [key: CanisterId]: CanisterBlackholeData | undefined }
 
-type ContentStatus = { inProgress: boolean, loaded: boolean }
-type CanisterStatus = { [key: CanisterId]: ContentStatus }
-type ContentError = { isError: boolean, error?: Error }
-export type CanisterError = { [key: CanisterId]: ContentError }
-
 export interface Context {
-    status: CanisterStatus
-    error: CanisterError
+    status: CGStatusByKey
+    error: CGErrorByKey
     dataHourly: ContextDataHourly
     dataDaily: ContextDataDaily
     dataBlackhole: ContextDataBlackhole
@@ -73,7 +69,7 @@ type Props = {
 export const DataProvider = (props: PropsWithChildren<Props>) => {
     const isMounted = useIsMounted()
 
-    const [contextStatus, updateContextStatus] = useReducer<Reducer<CanisterStatus, { [key: CanisterId]: Partial<ContentStatus> }>>(
+    const [contextStatus, updateContextStatus] = useReducer<Reducer<CGStatusByKey, { [key: CanisterId]: Partial<CGStatus> }>>(
         (state, newState) => {
             const result = {...state}
             _.each(newState, (value, key) => {
@@ -87,7 +83,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         initialContextValue.status
     )
 
-    const [contextError, updateContextError] = useReducer<Reducer<CanisterError, { [key: CanisterId]: Partial<ContentError> }>>(
+    const [contextError, updateContextError] = useReducer<Reducer<CGErrorByKey, { [key: CanisterId]: Partial<CGError> }>>(
         (state, newState) => {
             const result = {...state}
             _.each(newState, (value, key) => {
@@ -139,8 +135,8 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
 
                 const allSettledResult = await Promise.allSettled(promises)
                 console.log("allSettledResult", _.cloneDeep(allSettledResult));
-                const canisterStatusResult: { [key: CanisterId]: Partial<ContentStatus> } = {}
-                const canisterErrorResult: { [key: CanisterId]: Partial<ContentError> } = {}
+                const canisterStatusResult: { [key: CanisterId]: Partial<CGStatus> } = {}
+                const canisterErrorResult: { [key: CanisterId]: Partial<CGError> } = {}
                 const contextDataHourlyResult: ContextDataHourly = {}
                 const contextDataDailyResult: ContextDataDaily = {}
                 const contextDataBlackholeResult: ContextDataBlackhole = {}
@@ -177,11 +173,11 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
                                 const granularity = currentParams.granularity
                                 switch (granularity) {
                                     case "hourly": {
-                                        contextDataHourlyResult[canisterId] = []
+                                        contextDataHourlyResult[canisterId] = undefined
                                         break;
                                     }
                                     case "daily": {
-                                        contextDataDailyResult[canisterId] = []
+                                        contextDataDailyResult[canisterId] = undefined
                                         break;
                                     }
                                 }
@@ -215,7 +211,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         try {
             updateContextStatus(_.mapValues(_.mapKeys(params.canisterIds, v => v), () => ({inProgress: true})))
             const promises: Array<Promise<any>> = _.map<string, Promise<any>>(params.canisterIds, async (canisterId) => {
-                const canisterActor = CanistergeekService.createCanistergeekCanisterActor(canisterId, props.identity, props.host);
+                const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(canisterId, props.identity, props.host);
                 return canisterActor.collectCanisterMetrics()
             })
             const allSettledResult = await Promise.allSettled(promises)
@@ -231,7 +227,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         }
     }, [isMounted, props.identity, props.host])
 
-    const value = useCustomCompareMemo<Context, [CanisterStatus, CanisterError, ContextDataHourly, ContextDataDaily, ContextDataBlackhole, GetCanisterMetricsFn, CollectCanisterMetricsFn]>(() => ({
+    const value = useCustomCompareMemo<Context, [CGStatusByKey, CGErrorByKey, ContextDataHourly, ContextDataDaily, ContextDataBlackhole, GetCanisterMetricsFn, CollectCanisterMetricsFn]>(() => ({
         status: contextStatus,
         error: contextError,
         dataHourly: contextDataHourly,
@@ -263,7 +259,7 @@ type FetchCanisterHourlyDataPromiseResult = {
     "hourly": Array<HourlyMetricsData>
 }
 const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
-    const canisterActor = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
+    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
     const hourlyData = await canisterActor.getCanisterMetrics({
         granularity: {hourly: null},
         dateFromMillis: params.fromMillisUTC,
@@ -286,7 +282,7 @@ type FetchCanisterBlackholeDataPromiseResult = {
 }
 
 const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
-    const canisterActor = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
+    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
     const dailyData = await canisterActor.getCanisterMetrics({
         granularity: {daily: null},
         dateFromMillis: params.fromMillisUTC,
@@ -312,16 +308,18 @@ const fetchCanisterBlackholeDataAndUpdateState = async (params: GetCanisterMetri
 }
 
 const getHourlyMetricsDataWithCanisterHourlyResponse = (canisterResponse: [] | [CanisterMetrics]): Array<HourlyMetricsData> | undefined => {
-    if (canisterResponse.length == 1) {
-        if ("hourly" in canisterResponse[0].data) {
-            return canisterResponse[0].data.hourly
+    const value = getCandidOptional<CanisterMetrics>(canisterResponse)
+    if (value) {
+        if (hasOwnProperty(value.data, "hourly")) {
+            return value.data.hourly
         }
     }
 }
 const getDailyMetricsWithCanisterDailyResponse = (canisterResponse: [] | [CanisterMetrics]): Array<DailyMetricsData> | undefined => {
-    if (canisterResponse.length == 1) {
-        if ("daily" in canisterResponse[0].data) {
-            return canisterResponse[0].data.daily
+    const value = getCandidOptional<CanisterMetrics>(canisterResponse)
+    if (value) {
+        if (hasOwnProperty(value.data, "daily")) {
+            return value.data.daily
         }
     }
 }

@@ -1,6 +1,6 @@
 /// <reference types="react" />
 import { ChartJSChartComponentSupplier } from "./ChartJSChartContext";
-import "./chartJSComponentWrapper.css";
+import "./chartJSComponentWrapper.less";
 declare type Props = {
     supplier: ChartJSChartComponentSupplier;
     inProgress: boolean;

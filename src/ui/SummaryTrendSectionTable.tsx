@@ -60,7 +60,7 @@ export const SummaryTrendSectionTable = () => {
         <Table dataSource={precalculatedDataArray} pagination={{hideOnSinglePage: true, defaultPageSize: 20}} size={"small"} rowKey={record => record.canister.canisterId} loading={inProgress}>
             <Table.Column<TableItemType> title={"Canister"} width={"16%"} key="Canister" render={(text, record) => {
                 const canisterName = record.canister.name ? record.canister.name : record.canister.canisterId
-                return <Link to={urlPathContext.pathToSection(record.canister.canisterId)}><span style={{fontSize: "1em", fontWeight: "bold"}}>{canisterName}</span></Link>
+                return <Link to={urlPathContext.pathToMetricsSection(record.canister.canisterId)}><span style={{fontSize: "1em", fontWeight: "bold"}}>{canisterName}</span></Link>
             }}/>
             <Table.Column<TableItemType> title={"Update Calls"} key="Update Calls" width={"28%"} render={(text, record) => {
                 return <ChartJS shiftsData={record.data.shiftsData.updateCalls} tooltipValuePrefix={"Update Calls"} yAxisMin={0}/>

@@ -3,15 +3,25 @@ import {PropsWithChildren, useCallback, useMemo, useState} from "react";
 import queryString from "query-string";
 import {generatePath} from "react-router-dom";
 
-export type Section = "summary" | string
+export type MetricsSection = "summary" | string
+export type LogMessagesSection = "summary" | "realtime" | "history"
 
-type PathToSectionFn = (section: Section) => string
+type PathToMetricsSectionFn = (section: MetricsSection) => string
+type PathToLogMessagesSectionFn = (section: LogMessagesSection) => string
 
 interface Context {
     configPath: string
-    basePathRoot: string
     basePath: string
-    pathToSection: PathToSectionFn
+    metricsPathRoot: string
+    metricsPath: string
+    logMessagesPathRoot: string
+    logMessagesPath: string
+    githubMotokoLibraryURL: string
+    githubMotokoLibraryLimitAccessURL: string
+    githubRustLibraryURL: string
+    githubRustLibraryLimitAccessURL: string
+    pathToMetricsSection: PathToMetricsSectionFn
+    pathToLogMessagesSection: PathToLogMessagesSectionFn
 }
 
 export const URLPathContext = React.createContext<Context | undefined>(undefined);
@@ -26,27 +36,54 @@ export const useURLPathContext = () => {
 type Props = {
     configPath: string
     basePath: string
+    githubMotokoLibraryURL: string
+    githubMotokoLibraryLimitAccessURL: string
+    githubRustLibraryURL: string
+    githubRustLibraryLimitAccessURL: string
 }
 
 export const URLPathProvider = (props: PropsWithChildren<Props>) => {
     const [configPath] = useState<string>(props.configPath)
-    const [basePathRoot] = useState<string>(props.basePath)
-    const [basePath] = useState<string>(`${props.basePath}/:canisterId`)
+    const [basePath] = useState<string>(props.basePath)
+    const [metricsPathRoot] = useState<string>(`${props.basePath}/metrics`)
+    const [metricsPath] = useState<string>(`${metricsPathRoot}/:canisterId`)
+    const [logMessagesPathRoot] = useState<string>(`${props.basePath}/logMessages`)
+    const [logMessagesPath] = useState<string>(`${logMessagesPathRoot}/:section`)
 
-    const pathToSection = useCallback<PathToSectionFn>((section: Section) => {
-        return generatePath(queryString.stringifyUrl({url: basePath}), {canisterId: section})
+    const pathToMetricsSection = useCallback<PathToMetricsSectionFn>((section: MetricsSection) => {
+        return generatePath(queryString.stringifyUrl({url: metricsPath}), {canisterId: section})
+    }, [basePath])
+
+    const pathToLogMessagesSection = useCallback<PathToLogMessagesSectionFn>((section: LogMessagesSection) => {
+        return generatePath(queryString.stringifyUrl({url: logMessagesPath}), {section: section})
     }, [basePath])
 
     const value = useMemo<Context>(() => ({
         configPath: configPath,
-        basePathRoot: basePathRoot,
         basePath: basePath,
-        pathToSection: pathToSection
+        metricsPathRoot: metricsPathRoot,
+        metricsPath: metricsPath,
+        logMessagesPathRoot: logMessagesPathRoot,
+        logMessagesPath: logMessagesPath,
+        pathToMetricsSection: pathToMetricsSection,
+        pathToLogMessagesSection: pathToLogMessagesSection,
+        githubMotokoLibraryURL: props.githubMotokoLibraryURL,
+        githubMotokoLibraryLimitAccessURL: props.githubMotokoLibraryLimitAccessURL,
+        githubRustLibraryURL: props.githubRustLibraryURL,
+        githubRustLibraryLimitAccessURL: props.githubRustLibraryLimitAccessURL,
     }), [
         configPath,
-        basePathRoot,
         basePath,
-        pathToSection
+        metricsPathRoot,
+        metricsPath,
+        logMessagesPathRoot,
+        logMessagesPath,
+        pathToMetricsSection,
+        pathToLogMessagesSection,
+        props.githubMotokoLibraryURL,
+        props.githubMotokoLibraryLimitAccessURL,
+        props.githubRustLibraryURL,
+        props.githubRustLibraryLimitAccessURL,
     ])
 
     return <URLPathContext.Provider value={value}>
