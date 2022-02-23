@@ -3,11 +3,7 @@ import {PropsWithChildren, Reducer, useReducer} from "react";
 import {useCustomCompareEffect, useCustomCompareMemo} from "use-custom-compare";
 import _ from "lodash"
 import {ChartJSChartComponentSupplier, ChartJSChartContext} from "./ChartJSChartContext";
-
-export type StateError = {
-    error?: Error
-    isError: boolean
-}
+import {CGError} from "../dataProvider/Commons";
 
 const initialState: ChartJSChartComponentSupplier = {
     isError: false,
@@ -24,7 +20,7 @@ type ChartJSChartContextProviderFn<D, P> = (data: D, parameters: P) => ChartJSCh
 type StateDataTransformFn<D> = (data: D) => any
 
 type Props<D, P> = {
-    error?: StateError
+    error?: CGError
     data: D
     parameters: P
     chartContextProviderFn: ChartJSChartContextProviderFn<D, P>
@@ -34,7 +30,6 @@ type Props<D, P> = {
 export function ChartJSComponentSupplierProvider<D, P>(props: PropsWithChildren<Props<D, P>>) {
 
     useCustomCompareEffect(() => {
-        // }
         try {
             if (props.error?.isError) {
                 setState({

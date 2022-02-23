@@ -6,6 +6,6 @@ export declare const CalculationUtils: {
     findDifferenceAsNumber: (values: Array<bigint> | undefined) => bigint;
     recalculateCyclesToDollars: (value?: bigint | number) => number;
     recalculateCyclesToDollarsFormatted: (value?: bigint | number) => string;
-    jsonStringifyWithBigInt: (value: any) => string;
+    jsonStringifyWithBigInt: (value: any, space?: string | number) => string;
     jsonParseWithBigInt: (value: string) => any;
 };

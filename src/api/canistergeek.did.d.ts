@@ -43,8 +43,54 @@ export interface NumericEntity {
 }
 
 export type UpdateCallsAggregatedData = Array<bigint>;
+export type CanisterLogFeature = { 'filterMessageByContains': null } |
+    { 'filterMessageByRegex': null };
+
+export interface CanisterLogMessages {
+    'data': Array<LogMessagesData>,
+    'lastAnalyzedMessageTimeNanos': [] | [Nanos],
+}
+
+export interface CanisterLogMessagesInfo {
+    'features': Array<[] | [CanisterLogFeature]>,
+    'lastTimeNanos': [] | [Nanos],
+    'count': number,
+    'firstTimeNanos': [] | [Nanos],
+}
+
+export type CanisterLogRequest = { 'getMessagesInfo': null } |
+    { 'getMessages': GetLogMessagesParameters } |
+    { 'getLatestMessages': GetLatestLogMessagesParameters };
+export type CanisterLogResponse = { 'messagesInfo': CanisterLogMessagesInfo } |
+    { 'messages': CanisterLogMessages };
+
+export interface GetLatestLogMessagesParameters {
+    'upToTimeNanos': [] | [Nanos],
+    'count': number,
+    'filter': [] | [GetLogMessagesFilter],
+}
+
+export interface GetLogMessagesFilter {
+    'messageRegex': [] | [string],
+    'analyzeCount': number,
+    'messageContains': [] | [string],
+}
+
+export interface GetLogMessagesParameters {
+    'count': number,
+    'filter': [] | [GetLogMessagesFilter],
+    'fromTimeNanos': [] | [Nanos],
+}
+
+export interface LogMessagesData {
+    'timeNanos': Nanos,
+    'message': string
+}
+
+export type Nanos = bigint;
 
 export interface _SERVICE {
     'collectCanisterMetrics': () => Promise<undefined>,
     'getCanisterMetrics': (arg_0: GetMetricsParameters) => Promise<[] | [CanisterMetrics]>,
+    'getCanisterLog': (arg_0: [] | [CanisterLogRequest]) => Promise<[] | [CanisterLogResponse]>,
 }

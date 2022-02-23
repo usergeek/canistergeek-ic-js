@@ -29,16 +29,16 @@ export const SummaryRealtimeSectionTable = () => {
         <Table dataSource={precalculatedDataArray} pagination={{hideOnSinglePage: true, defaultPageSize: 20}} size={"small"} rowKey={record => record.canister.canisterId} loading={inProgress}>
             <Table.Column<TableItemType> title={"Canister"} width={"16%"} key="Canister" render={(text, record) => {
                 const canisterName = record.canister.name ? record.canister.name : record.canister.canisterId
-                return <Link to={urlPathContext.pathToSection(record.canister.canisterId)}><span style={{fontSize: "1em", fontWeight: "bold"}}>{canisterName}</span></Link>
+                return <Link to={urlPathContext.pathToMetricsSection(record.canister.canisterId)}><span style={{fontSize: "1em", fontWeight: "bold"}}>{canisterName}</span></Link>
             }}/>
             <Table.Column<TableItemType> title={"Cycles"} key="Cycles" width={"28%"} render={(text, record) => {
                 return <SummaryRealtimeSimpleMetricWrapperLabelComponent metricWrapper={record.data.cycles}/>
             }}/>
-            <Table.Column<TableItemType> title={"Memory"} key="Memory2" width={"28%"} render={(text, record) => {
+            <Table.Column<TableItemType> title={"Memory"} key="Memory" width={"28%"} render={(text, record) => {
                 const value = record.data.memory;
                 return <SummaryRealtimeLineProgressWithOutdatedInfo<number> metricWrapper={value}/>
             }}/>
-            <Table.Column<TableItemType> title={"Heap Memory"} key="Heap Memory2" width={"28%"} render={(text, record: TableItemType) => {
+            <Table.Column<TableItemType> title={"Heap Memory"} key="Heap Memory" width={"28%"} render={(text, record: TableItemType) => {
                 if (record.data.metricsSource == "canister") {
                     const value = record.data.heapMemory;
                     return <SummaryRealtimeLineProgressWithOutdatedInfo<number> metricWrapper={value}/>

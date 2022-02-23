@@ -101,7 +101,7 @@ const createTrendSection24HoursIntervalForDay = (startOfDayMilliseconds: number,
 
 const getPrecalculatedData = (dataHourly: ContextDataHourly): PrecalculatedData => {
     return _.mapKeys<SummaryPageTrendSectionData>(_.compact<SummaryPageTrendSectionData>(_.map<ContextDataHourly, SummaryPageTrendSectionData | undefined>(dataHourly, (hourlyMetricsData, canisterId) => {
-        if (hourlyMetricsData.length > 0) {
+        if (hourlyMetricsData && hourlyMetricsData.length > 0) {
             const metricIntervalIndexForCurrentTime = DateUtils.getMetricIntervalIndexForCurrentTime();
             const today24HoursInterval: TrendSection24HoursInterval = createTrendSection24HoursIntervalForDay(DateUtils.getStartOfDayMilliseconds(DateUtils.nowTimeUTC()), metricIntervalIndexForCurrentTime)
             const full24HoursIntervalShifts: Array<number> = [0, 1, 2, 3, 4, 5, 6, 7]

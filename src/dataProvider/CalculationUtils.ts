@@ -97,9 +97,7 @@ export const CalculationUtils = {
     findDifferenceAsNumber: findDifferenceAsNumber,
     recalculateCyclesToDollars: recalculateCyclesToDollars,
     recalculateCyclesToDollarsFormatted: recalculateCyclesToDollarsFormatted,
-    jsonStringifyWithBigInt: (value: any) => JSON.stringify(value, (key, value) =>
-        typeof value === "bigint" ? value.toString() + "n" : value
-    ),
+    jsonStringifyWithBigInt: (value: any, space?: string | number) => JSON.stringify(value, (key, value) => typeof value === "bigint" ? value.toString() + "n" : value, space),
     jsonParseWithBigInt: (value: string) => JSON.parse(value, (key, value) => {
         if (typeof value === "string" && /^\d+n$/.test(value)) {
             return BigInt(value.substr(0, value.length - 1));
