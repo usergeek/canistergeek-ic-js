@@ -254,8 +254,8 @@ const fetchCanisterInfo = async (canisterId: CanisterId, identity?: Identity, ho
 type GetCanisterLogRecursiveRequest = DistributiveOmit<CanisterLogRequest, "getMessagesInfo">
 type GetCanisterLogRecursiveResponse = DistributiveOmit<CanisterLogResponse, "messagesInfo">
 
-const GET_LOG_MESSAGES_MAX_COUNT = 500
-const GET_LOG_MESSAGES_MAX_COUNT_PER_REQUEST = 100
+const GET_LOG_MESSAGES_MAX_COUNT = 100
+const GET_LOG_MESSAGES_MAX_COUNT_PER_REQUEST = 50
 const GET_LOG_MESSAGES_WITH_FILTER_MAX_COUNT = 25
 const GET_LOG_MESSAGES_WITH_FILTER_MAX_COUNT_PER_REQUEST = 25
 
