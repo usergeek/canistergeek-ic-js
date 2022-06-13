@@ -1,6 +1,6 @@
 {
   "name": "canistergeek-ic-js",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Canistergeek Javascript Library",
   "main": "./lib/es5/index.js",
   "author": "Canistergeek <support@usergeek.com>",
@@ -20,9 +20,9 @@
     "copy_less": "cp src/ui/*.less lib/es5/ui"
   },
   "dependencies": {
-    "@dfinity/agent": "^0.10.2",
-    "@dfinity/auth-client": "^0.10.2",
-    "@dfinity/principal": "^0.10.2",
+    "@dfinity/agent": "^0.11.3",
+    "@dfinity/auth-client": "^0.11.3",
+    "@dfinity/principal": "^0.11.3",
     "@types/ace": "^0.0.47",
     "@types/lodash": "^4.14.178",
     "@types/react": "^17.0.38",
