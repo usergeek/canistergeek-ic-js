@@ -108,13 +108,15 @@ const prepareChartHourlyData = (source: Array<ChartHourlyDataSource>, granularit
         const itemsByDays = source.map((sourceValue) => {
             let currentMillis = Number(sourceValue.timeMillis);
             const millisToAddForEachInterval = (86400 / sourceValue.values.length) * 1000
-            return sourceValue.values.map<ScatterDataPoint>((value, idx) => {
+            const result: Array<ScatterDataPoint> = []
+            sourceValue.values.forEach((value, idx) => {
                 const point: ScatterDataPoint = {
                     x: currentMillis + millisToAddForEachInterval * idx,
                     y: value > 0 ? Number(value) : null
                 }
-                return point
+                result.push(point)
             })
+            return result
         });
         const dataPoints: Array<ScatterDataPoint> = _.flatten<ScatterDataPoint>(itemsByDays);
         const seriesDataAvailabilityStates: Array<SeriesDataAvailabilityState> = []
