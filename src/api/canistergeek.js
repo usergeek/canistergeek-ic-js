@@ -102,10 +102,11 @@ const idlFactory = ({IDL}) => {
  *
  * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig}} [options]
+ * @param {import("@dfinity/agent").HttpAgent | undefined} httpAgent
  * @return {import("@dfinity/agent").ActorSubclass<import("./canistergeek.did.d.ts")._SERVICE>}
  */
-const createActor = (canisterId, options) => {
-    const agent = new HttpAgent({...options?.agentOptions});
+const createActor = (canisterId, options, httpAgent) => {
+    const agent = httpAgent || new HttpAgent({...options?.agentOptions});
 
     // Fetch root key for certificate validation during development
     if (process.env.NODE_ENV !== "production") {
@@ -128,13 +129,14 @@ const createActor = (canisterId, options) => {
  * @param {string} canisterId
  * @param {import("@dfinity/agent").Identity} identity
  * @param {string} host
+ * @param {import("@dfinity/agent").HttpAgent | undefined} httpAgent
  * @return {import("@dfinity/agent").ActorSubclass<import("./canistergeek.did.d.ts")._SERVICE>}
  */
-export const createCanisterActor = (canisterId, identity, host) => {
+export const createCanisterActor = (canisterId, identity, host, httpAgent) => {
     return createActor(canisterId, {
         agentOptions: {
             identity: identity,
             host: host
         }
-    })
+    }, httpAgent)
 }

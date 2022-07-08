@@ -2,7 +2,7 @@
  * https://github.com/ninegua/ic-blackhole
  */
 
-import {Actor, HttpAgent} from "@dfinity/agent";
+import {Actor, AnonymousIdentity, HttpAgent} from "@dfinity/agent";
 
 const idlFactory = ({IDL}) => {
     const canister_id = IDL.Principal;
@@ -32,7 +32,7 @@ const idlFactory = ({IDL}) => {
     });
 };
 
-const CANISTER_ID = "e3mmv-5qaaa-aaaah-aadma-cai"
+export const BLACKHOLE_CANISTER_ID = "e3mmv-5qaaa-aaaah-aadma-cai"
 
 /**
  *
@@ -43,14 +43,6 @@ const CANISTER_ID = "e3mmv-5qaaa-aaaah-aadma-cai"
 const createActor = (canisterId, options) => {
     const agent = new HttpAgent({...options?.agentOptions});
 
-    // Fetch root key for certificate validation during development
-    if (process.env.NODE_ENV !== "production") {
-        agent.fetchRootKey().catch(err => {
-            console.error("Unable to fetch root key. Check to ensure that your local replica is running");
-            console.error(err);
-        });
-    }
-
     // Creates an actor with using the candid interface and the HttpAgent
     return Actor.createActor(idlFactory, {
         agent,
@@ -60,13 +52,13 @@ const createActor = (canisterId, options) => {
 };
 
 /**
- * @param {import("@dfinity/agent").Identity} identity
  * @return {import("@dfinity/agent").ActorSubclass<import("./blackhole0_0_0.did.d.ts")._SERVICE>}
  */
-export const createCanisterActor = (identity) => {
-    return createActor(CANISTER_ID, {
+export const createCanisterActor = () => {
+    return createActor(BLACKHOLE_CANISTER_ID, {
         agentOptions: {
-            identity: identity,
+            identity: new AnonymousIdentity(),
+            host: "https://boundary.ic0.app"
         }
     })
 }

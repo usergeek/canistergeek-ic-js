@@ -2,7 +2,7 @@ import * as React from "react";
 import {PropsWithChildren, Reducer, useCallback, useReducer} from "react";
 import {_SERVICE, CanisterMetrics, DailyMetricsData, HourlyMetricsData} from "../api/canistergeek.did";
 import {useCustomCompareMemo} from "use-custom-compare";
-import {Identity} from "@dfinity/agent";
+import {HttpAgent, Identity} from "@dfinity/agent";
 import {CanistergeekService, getCandidOptional} from "../api/CanistergeekService";
 import {unstable_batchedUpdates} from "react-dom";
 import _ from "lodash"
@@ -64,6 +64,7 @@ export const useDataContext = () => React.useContext<Context>(Context);
 type Props = {
     identity?: Identity
     host?: string
+    httpAgent?: HttpAgent
 }
 
 export const DataProvider = (props: PropsWithChildren<Props>) => {
@@ -123,12 +124,12 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
                     if (v.source == "canister") {
                         switch (v.granularity) {
                             case "hourly":
-                                return fetchCanisterHourlyDataAndUpdateState(v, props.identity, props.host)
+                                return fetchCanisterHourlyDataAndUpdateState(v, props.identity, props.host, props.httpAgent)
                             case "daily":
-                                return fetchCanisterDailyDataAndUpdateState(v, props.identity, props.host)
+                                return fetchCanisterDailyDataAndUpdateState(v, props.identity, props.host, props.httpAgent)
                         }
                     } else if (v.source == "blackhole") {
-                        return fetchCanisterBlackholeDataAndUpdateState(v, props.identity)
+                        return fetchCanisterBlackholeDataAndUpdateState(v)
                     }
                     return Promise.reject(undefined)
                 })
@@ -205,13 +206,13 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         }
         // noinspection ES6MissingAwait
         get();
-    }, [isMounted, props.identity, props.host])
+    }, [isMounted, props.identity, props.host, props.httpAgent])
 
     const collectCanisterMetrics: CollectCanisterMetricsFn = useCallback<CollectCanisterMetricsFn>(async (params: CollectCanisterMetricsFnParams): Promise<any> => {
         try {
             updateContextStatus(_.mapValues(_.mapKeys(params.canisterIds, v => v), () => ({inProgress: true})))
             const promises: Array<Promise<any>> = _.map<string, Promise<any>>(params.canisterIds, async (canisterId) => {
-                const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(canisterId, props.identity, props.host);
+                const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(canisterId, props.identity, props.host, props.httpAgent);
                 return canisterActor.collectCanisterMetrics()
             })
             const allSettledResult = await Promise.allSettled(promises)
@@ -225,7 +226,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         } finally {
             updateContextStatus(_.mapValues(_.mapKeys(params.canisterIds, v => v), () => ({inProgress: false})))
         }
-    }, [isMounted, props.identity, props.host])
+    }, [isMounted, props.identity, props.host, props.httpAgent])
 
     const value = useCustomCompareMemo<Context, [CGStatusByKey, CGErrorByKey, ContextDataHourly, ContextDataDaily, ContextDataBlackhole, GetCanisterMetricsFn, CollectCanisterMetricsFn]>(() => ({
         status: contextStatus,
@@ -258,8 +259,8 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
 type FetchCanisterHourlyDataPromiseResult = {
     "hourly": Array<HourlyMetricsData>
 }
-const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
-    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
+const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string, httpAgent?: HttpAgent): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
+    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host, httpAgent);
     const hourlyData = await canisterActor.getCanisterMetrics({
         granularity: {hourly: null},
         dateFromMillis: params.fromMillisUTC,
@@ -281,8 +282,8 @@ type FetchCanisterBlackholeDataPromiseResult = {
     "blackhole": CanisterBlackholeData
 }
 
-const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
-    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host);
+const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string, httpAgent?: HttpAgent): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
+    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host, httpAgent);
     const dailyData = await canisterActor.getCanisterMetrics({
         granularity: {daily: null},
         dateFromMillis: params.fromMillisUTC,
@@ -296,8 +297,8 @@ const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFn
     }
 }
 
-const fetchCanisterBlackholeDataAndUpdateState = async (params: GetCanisterMetricsFnParamsBlackhole, identity?: Identity): Promise<FetchCanisterBlackholeDataPromiseResult | undefined> => {
-    const canisterActor = CanistergeekService.createBlackholeCanisterActor(identity);
+const fetchCanisterBlackholeDataAndUpdateState = async (params: GetCanisterMetricsFnParamsBlackhole): Promise<FetchCanisterBlackholeDataPromiseResult | undefined> => {
+    const canisterActor = CanistergeekService.createBlackholeCanisterActor();
     const canisterData = await canisterActor.canister_status({canister_id: Principal.fromText(params.canisterId)})
     return {
         blackhole: {

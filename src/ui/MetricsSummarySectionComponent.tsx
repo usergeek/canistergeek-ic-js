@@ -30,8 +30,9 @@ export const MetricsSummarySectionComponent = () => {
 
     const dataHourlyNotEmpty = _.some(dataContext.dataHourly, value => !_.isNil(value));
     const dataDailyNotEmpty = _.some(dataContext.dataDaily, value => !_.isNil(value));
+    const dataBlackholeNotEmpty = _.some(dataContext.dataBlackhole, value => !_.isNil(value));
 
-    if (!dataHourlyNotEmpty && !dataDailyNotEmpty) {
+    if (!dataHourlyNotEmpty && !dataDailyNotEmpty && !dataBlackholeNotEmpty) {
         return <Result status="warning" title={`No data.`} subTitle={<>Please double check you’ve integrated latest <a href={urlPathContext.githubMotokoLibraryURL} target={"_blank"}>Motoko</a> or <a href={urlPathContext.githubRustLibraryURL} target={"_blank"}>Rust</a> library into your canisters</>}/>
     }
 

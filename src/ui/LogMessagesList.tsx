@@ -19,7 +19,7 @@ export const LogMessagesList = (props: Props) => {
         return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE}/>
     }
     return <>
-        <Row gutter={[16, 16]} className={"logMessagesList logMessagesListNoWrap"}>
+        <Row gutter={[16, 16]} className={"logMessagesList logMessagesListPreWrap"}>
             <Col span={24}>
                 {props.listItems.map((item, idx) => {
                     return <div key={`${props.sequence}_${idx}`}>
