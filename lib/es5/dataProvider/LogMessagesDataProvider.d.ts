@@ -1,8 +1,8 @@
 import { PropsWithChildren } from "react";
 import { CanisterId } from "./ConfigurationProvider";
-import { HttpAgent, Identity } from "@dfinity/agent";
+import { Identity } from "@dfinity/agent";
 import { GetLatestLogMessagesParameters, GetLogMessagesParameters, LogMessagesData, Nanos } from "../api/canistergeek.did";
-import { CGErrorByKey, CGStatusByKey } from "./Commons";
+import { CGErrorByKey, CGStatusByKey, CreateActorFn } from "./Commons";
 export declare type InfoData = {
     lastTimeNanos?: Nanos;
     count: number;
@@ -49,7 +49,7 @@ export declare const useLogMessagesDataContext: () => Context;
 declare type Props = {
     identity?: Identity;
     host?: string;
-    httpAgent?: HttpAgent;
+    createActorFn: CreateActorFn;
 };
 export declare const LogMessagesDataProvider: (props: PropsWithChildren<Props>) => JSX.Element;
 export {};

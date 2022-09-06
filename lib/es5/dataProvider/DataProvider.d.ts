@@ -1,8 +1,8 @@
 import { PropsWithChildren } from "react";
 import { DailyMetricsData, HourlyMetricsData } from "../api/canistergeek.did";
-import { HttpAgent, Identity } from "@dfinity/agent";
+import { Identity } from "@dfinity/agent";
 import { CanisterId } from "./ConfigurationProvider";
-import { CGErrorByKey, CGStatusByKey } from "./Commons";
+import { CGErrorByKey, CGStatusByKey, CreateActorFn } from "./Commons";
 declare type Granularity = "hourly" | "daily";
 export declare type GetCanisterMetricsSource = "canister" | "blackhole";
 declare type GetCanisterMetricsFnParamsCommon<S extends GetCanisterMetricsSource = GetCanisterMetricsSource> = {
@@ -47,7 +47,7 @@ export declare const useDataContext: () => Context;
 declare type Props = {
     identity?: Identity;
     host?: string;
-    httpAgent?: HttpAgent;
+    createActorFn: CreateActorFn;
 };
 export declare const DataProvider: (props: PropsWithChildren<Props>) => JSX.Element;
 export {};

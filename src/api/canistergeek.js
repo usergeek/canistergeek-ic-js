@@ -1,6 +1,6 @@
 import {Actor, HttpAgent} from "@dfinity/agent";
 
-const idlFactory = ({IDL}) => {
+export const idlFactory = ({IDL}) => {
     const MetricsGranularity = IDL.Variant({
         'hourly': IDL.Null,
         'daily': IDL.Null,

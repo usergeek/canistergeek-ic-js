@@ -2,7 +2,7 @@ import * as React from "react";
 import {PropsWithChildren, Reducer, useCallback, useReducer} from "react";
 import {_SERVICE, CanisterMetrics, DailyMetricsData, HourlyMetricsData} from "../api/canistergeek.did";
 import {useCustomCompareMemo} from "use-custom-compare";
-import {HttpAgent, Identity} from "@dfinity/agent";
+import {Identity} from "@dfinity/agent";
 import {CanistergeekService, getCandidOptional} from "../api/CanistergeekService";
 import {unstable_batchedUpdates} from "react-dom";
 import _ from "lodash"
@@ -10,7 +10,8 @@ import {CanisterId} from "./ConfigurationProvider";
 import useIsMounted from "../util/isMounted";
 import {hasOwnProperty} from "../util/typescriptAddons";
 import {Principal} from "@dfinity/principal";
-import {CGError, CGErrorByKey, CGStatus, CGStatusByKey} from "./Commons";
+import {CGError, CGErrorByKey, CGStatus, CGStatusByKey, CreateActorFn} from "./Commons";
+import {idlFactory as idlCanistergeekFactory} from "../api/canistergeek";
 
 type Granularity = "hourly" | "daily"
 
@@ -64,7 +65,7 @@ export const useDataContext = () => React.useContext<Context>(Context);
 type Props = {
     identity?: Identity
     host?: string
-    httpAgent?: HttpAgent
+    createActorFn: CreateActorFn
 }
 
 export const DataProvider = (props: PropsWithChildren<Props>) => {
@@ -124,9 +125,9 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
                     if (v.source == "canister") {
                         switch (v.granularity) {
                             case "hourly":
-                                return fetchCanisterHourlyDataAndUpdateState(v, props.identity, props.host, props.httpAgent)
+                                return fetchCanisterHourlyDataAndUpdateState(v, props.createActorFn, props.identity, props.host)
                             case "daily":
-                                return fetchCanisterDailyDataAndUpdateState(v, props.identity, props.host, props.httpAgent)
+                                return fetchCanisterDailyDataAndUpdateState(v, props.createActorFn, props.identity, props.host)
                         }
                     } else if (v.source == "blackhole") {
                         return fetchCanisterBlackholeDataAndUpdateState(v)
@@ -206,13 +207,18 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         }
         // noinspection ES6MissingAwait
         get();
-    }, [isMounted, props.identity, props.host, props.httpAgent])
+    }, [isMounted, props.identity, props.host, props.createActorFn])
 
     const collectCanisterMetrics: CollectCanisterMetricsFn = useCallback<CollectCanisterMetricsFn>(async (params: CollectCanisterMetricsFnParams): Promise<any> => {
         try {
             updateContextStatus(_.mapValues(_.mapKeys(params.canisterIds, v => v), () => ({inProgress: true})))
             const promises: Array<Promise<any>> = _.map<string, Promise<any>>(params.canisterIds, async (canisterId) => {
-                const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(canisterId, props.identity, props.host, props.httpAgent);
+                const canisterActor = await props.createActorFn<_SERVICE>(canisterId, idlCanistergeekFactory, {
+                    agentOptions: {
+                        identity: props.identity,
+                        host: props.host
+                    }
+                })
                 return canisterActor.collectCanisterMetrics()
             })
             const allSettledResult = await Promise.allSettled(promises)
@@ -226,7 +232,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         } finally {
             updateContextStatus(_.mapValues(_.mapKeys(params.canisterIds, v => v), () => ({inProgress: false})))
         }
-    }, [isMounted, props.identity, props.host, props.httpAgent])
+    }, [isMounted, props.identity, props.host, props.createActorFn])
 
     const value = useCustomCompareMemo<Context, [CGStatusByKey, CGErrorByKey, ContextDataHourly, ContextDataDaily, ContextDataBlackhole, GetCanisterMetricsFn, CollectCanisterMetricsFn]>(() => ({
         status: contextStatus,
@@ -259,8 +265,13 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
 type FetchCanisterHourlyDataPromiseResult = {
     "hourly": Array<HourlyMetricsData>
 }
-const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string, httpAgent?: HttpAgent): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
-    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host, httpAgent);
+const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, createActorFn: CreateActorFn, identity?: Identity, host?: string): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
+    const canisterActor = await createActorFn<_SERVICE>(params.canisterId, idlCanistergeekFactory, {
+        agentOptions: {
+            identity: identity,
+            host: host
+        }
+    })
     const hourlyData = await canisterActor.getCanisterMetrics({
         granularity: {hourly: null},
         dateFromMillis: params.fromMillisUTC,
@@ -282,8 +293,13 @@ type FetchCanisterBlackholeDataPromiseResult = {
     "blackhole": CanisterBlackholeData
 }
 
-const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, identity?: Identity, host?: string, httpAgent?: HttpAgent): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
-    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(params.canisterId, identity, host, httpAgent);
+const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, createActorFn: CreateActorFn, identity?: Identity, host?: string): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
+    const canisterActor = await createActorFn<_SERVICE>(params.canisterId, idlCanistergeekFactory, {
+        agentOptions: {
+            identity: identity,
+            host: host
+        }
+    })
     const dailyData = await canisterActor.getCanisterMetrics({
         granularity: {daily: null},
         dateFromMillis: params.fromMillisUTC,

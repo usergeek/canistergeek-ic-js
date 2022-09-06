@@ -4,7 +4,7 @@
 
 import {Actor, AnonymousIdentity, HttpAgent} from "@dfinity/agent";
 
-const idlFactory = ({IDL}) => {
+export const idlFactory = ({IDL}) => {
     const canister_id = IDL.Principal;
     const definite_canister_settings = IDL.Record({
         'freezing_threshold': IDL.Nat,

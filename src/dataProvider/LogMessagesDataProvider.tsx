@@ -1,15 +1,16 @@
 import * as React from "react";
 import {PropsWithChildren, Reducer, useCallback, useReducer} from "react";
 import {CanisterId} from "./ConfigurationProvider";
-import {HttpAgent, Identity} from "@dfinity/agent";
+import {Identity} from "@dfinity/agent";
 import _ from "lodash"
 import useIsMounted from "../util/isMounted";
-import {CanistergeekService, getCandidOptional} from "../api/CanistergeekService";
+import {getCandidOptional} from "../api/CanistergeekService";
+import {idlFactory as idlCanistergeekFactory} from '../api/canistergeek';
 import {_SERVICE, CanisterLogMessages, CanisterLogRequest, CanisterLogResponse, GetLatestLogMessagesParameters, GetLogMessagesFilter, GetLogMessagesParameters, LogMessagesData, Nanos} from "../api/canistergeek.did";
 import {DistributiveOmit, hasOwnProperty} from "../util/typescriptAddons";
 import {unstable_batchedUpdates} from "react-dom";
 import {useCustomCompareMemo} from "use-custom-compare";
-import {CGError, CGErrorByKey, CGStatus, CGStatusByKey} from "./Commons";
+import {CGError, CGErrorByKey, CGStatus, CGStatusByKey, CreateActorFn} from "./Commons";
 
 ////////////////////////////////////////////////
 // MessagesInfo
@@ -45,6 +46,7 @@ export type GetLogMessagesFnResult = {
     listItems: Array<GetLogMessagesFnResultListItem>
     lastAnalyzedMessageTimeNanos: Nanos | undefined
 }
+
 export type GetLogMessagesFnParameters<T = GetLogMessagesCanisterContext> = {
     canisters: Array<T>
     sortItemsBy: (item: GetLogMessagesFnResultListItem) => any
@@ -80,7 +82,7 @@ export const useLogMessagesDataContext = () => {
 type Props = {
     identity?: Identity
     host?: string
-    httpAgent?: HttpAgent
+    createActorFn: CreateActorFn
 }
 
 export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
@@ -123,7 +125,7 @@ export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
         try {
             updateInfoStatusByCanister(_.mapValues(_.mapKeys(canisterIds, v => v), () => ({inProgress: true})))
 
-            const promises: Array<Promise<InfoData | undefined>> = _.map(canisterIds, (canisterId) => fetchCanisterInfo(canisterId, props.identity, props.host, props.httpAgent))
+            const promises: Array<Promise<InfoData | undefined>> = _.map(canisterIds, (canisterId) => fetchCanisterInfo(canisterId, props.createActorFn, props.identity, props.host))
             const allSettledResult = await Promise.allSettled(promises)
             console.log("allSettledResult", _.cloneDeep(allSettledResult));
 
@@ -161,11 +163,16 @@ export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
                 updateInfoErrorByCanister(_.mapValues(_.mapKeys(canisterIds, v => v), () => ({isError: true, error: e})))
             })
         }
-    }, [isMounted, props.identity, props.host, props.httpAgent])
+    }, [isMounted, props.identity, props.host, props.createActorFn])
 
     const getLogMessages: GetLogMessagesFn = useCallback<GetLogMessagesFn>(async (parameters: GetLogMessagesFnParameters): Promise<GetLogMessagesFnResult> => {
         const promises: Array<Promise<GetCanisterLogRecursiveResult>> = _.map<GetLogMessagesCanisterContext, Promise<GetCanisterLogRecursiveResult>>(parameters.canisters, async (canisterContext: GetLogMessagesCanisterContext) => {
-            const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(canisterContext.canisterId, props.identity, props.host, props.httpAgent);
+            const canisterActor = await props.createActorFn<_SERVICE>(canisterContext.canisterId, idlCanistergeekFactory, {
+                agentOptions: {
+                    identity: props.identity,
+                    host: props.host
+                }
+            })
             if (canisterContext.requestType == "messages") {
                 return getCanisterLogRecursive(canisterContext.canisterId, canisterActor, {getMessages: canisterContext.parameters})
             } else if (canisterContext.requestType == "lastMessages") {
@@ -208,7 +215,7 @@ export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
             listItems: listItems,
             lastAnalyzedMessageTimeNanos: lastAnalyzedMessageTimeNanos,
         }
-    }, [isMounted, props.identity, props.host, props.httpAgent])
+    }, [isMounted, props.identity, props.host, props.createActorFn])
 
     const value = useCustomCompareMemo<Context, [CGStatusByKey, CGErrorByKey, InfoDataByCanister, GetInfosFn, GetLogMessagesFn]>(() => ({
         infoStatus: infoStatusByCanister,
@@ -230,8 +237,13 @@ export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
     </LogMessagesDataContext.Provider>
 }
 
-const fetchCanisterInfo = async (canisterId: CanisterId, identity?: Identity, host?: string, httpAgent?: HttpAgent): Promise<InfoData | undefined> => {
-    const canisterActor: _SERVICE = CanistergeekService.createCanistergeekCanisterActor(canisterId, identity, host, httpAgent);
+const fetchCanisterInfo = async (canisterId: CanisterId, createActorFn: CreateActorFn, identity?: Identity, host?: string): Promise<InfoData | undefined> => {
+    const canisterActor = await createActorFn<_SERVICE>(canisterId, idlCanistergeekFactory, {
+        agentOptions: {
+            identity: identity,
+            host: host
+        }
+    })
     let result: [] | [CanisterLogResponse] = [];
     try {
         result = await canisterActor.getCanisterLog([{getMessagesInfo: null}]);
