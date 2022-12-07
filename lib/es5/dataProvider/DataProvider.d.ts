@@ -1,7 +1,8 @@
 import { PropsWithChildren } from "react";
-import { DailyMetricsData, HourlyMetricsData } from "../api/canistergeek.did";
+import { CollectMetricsRequestType, DailyMetricsData, HourlyMetricsData } from "../api/canistergeek.did";
 import { Identity } from "@dfinity/agent";
 import { CanisterId } from "./ConfigurationProvider";
+import { KeysOfUnion } from "../util/typescriptAddons";
 import { CGErrorByKey, CGStatusByKey, CreateActorFn } from "./Commons";
 declare type Granularity = "hourly" | "daily";
 export declare type GetCanisterMetricsSource = "canister" | "blackhole";
@@ -19,6 +20,7 @@ export declare type GetCanisterMetricsFnParams = GetCanisterMetricsFnParamsCanis
 declare type GetCanisterMetricsFn = (params: Array<GetCanisterMetricsFnParams>) => void;
 declare type CollectCanisterMetricsFnParams = {
     canisterIds: Array<string>;
+    collectMetricsType?: KeysOfUnion<CollectMetricsRequestType>;
 };
 declare type CollectCanisterMetricsFn = (params: CollectCanisterMetricsFnParams) => Promise<any>;
 export declare type CanisterBlackholeData = {

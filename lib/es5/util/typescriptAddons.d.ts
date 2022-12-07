@@ -9,6 +9,7 @@ declare type Keys<T> = keyof T;
 declare type DistributiveKeys<T> = T extends unknown ? Keys<T> : never;
 declare type Pick_<T, K> = Pick<T, Extract<keyof T, K>>;
 declare type Omit_<T, K> = Omit<T, Extract<keyof T, K>>;
+export declare type KeysOfUnion<T> = T extends T ? keyof T : never;
 export declare type DistributivePick<T, K extends DistributiveKeys<T>> = T extends unknown ? keyof Pick_<T, K> extends never ? never : {
     [P in keyof Pick_<T, K>]: Pick_<T, K>[P];
 } : never;

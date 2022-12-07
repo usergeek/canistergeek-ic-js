@@ -83,6 +83,38 @@ export const idlFactory = ({IDL}) => {
         'messagesInfo': CanisterLogMessagesInfo,
         'messages': CanisterLogMessages,
     });
+
+
+
+    const StatusRequest = IDL.Record({
+        'memory_size' : IDL.Bool,
+        'cycles' : IDL.Bool,
+        'heap_memory_size' : IDL.Bool,
+    });
+    const StatusResponse = IDL.Record({
+        'memory_size' : IDL.Opt(IDL.Nat64),
+        'cycles' : IDL.Opt(IDL.Nat64),
+        'heap_memory_size' : IDL.Opt(IDL.Nat64),
+    });
+    const MetricsRequest = IDL.Record({ 'parameters' : GetMetricsParameters });
+    const MetricsResponse = IDL.Record({ 'metrics' : IDL.Opt(CanisterMetrics) });
+    const GetInformationRequest = IDL.Record({
+        'version' : IDL.Bool,
+        'metrics' : IDL.Opt(MetricsRequest),
+        'status' : IDL.Opt(StatusRequest),
+    });
+    const GetInformationResponse = IDL.Record({
+        'status' : IDL.Opt(StatusResponse),
+        'metrics' : IDL.Opt(MetricsResponse),
+        'version' : IDL.Opt(IDL.Nat),
+    });
+    const CollectMetricsRequestType = IDL.Variant({
+        'force' : IDL.Null,
+        'normal' : IDL.Null,
+    });
+    const UpdateInformationRequest = IDL.Record({
+        'metrics' : IDL.Opt(CollectMetricsRequestType),
+    });
     return IDL.Service({
         'collectCanisterMetrics': IDL.Func([], [], []),
         'getCanisterMetrics': IDL.Func(
@@ -94,6 +126,16 @@ export const idlFactory = ({IDL}) => {
             [IDL.Opt(CanisterLogRequest)],
             [IDL.Opt(CanisterLogResponse)],
             ['query'],
+        ),
+        'getCanistergeekInformation' : IDL.Func(
+            [GetInformationRequest],
+            [GetInformationResponse],
+            ['query'],
+        ),
+        'updateCanistergeekInformation' : IDL.Func(
+            [UpdateInformationRequest],
+            [],
+            [],
         ),
     });
 };

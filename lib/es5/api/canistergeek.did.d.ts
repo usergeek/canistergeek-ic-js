@@ -89,8 +89,38 @@ export interface LogMessagesData {
 
 export type Nanos = bigint;
 
+export interface StatusRequest {
+    'memory_size' : boolean,
+    'cycles' : boolean,
+    'heap_memory_size' : boolean,
+}
+export interface StatusResponse {
+    'memory_size' : [] | [bigint],
+    'cycles' : [] | [bigint],
+    'heap_memory_size' : [] | [bigint],
+}
+export interface MetricsRequest { 'parameters' : GetMetricsParameters }
+export interface MetricsResponse { 'metrics' : [] | [CanisterMetrics] }
+export interface GetInformationRequest {
+    'status' : [] | [StatusRequest],
+    'metrics' : [] | [MetricsRequest],
+    'version' : boolean,
+}
+export interface GetInformationResponse {
+  'status' : [] | [StatusResponse],
+  'metrics' : [] | [MetricsResponse],
+  'version' : [] | [bigint],
+}
+export type CollectMetricsRequestType = { 'force' : null } |
+    { 'normal' : null };
+export interface UpdateInformationRequest {
+  'metrics' : [] | [CollectMetricsRequestType],
+}
+
 export interface _SERVICE {
     'collectCanisterMetrics': () => Promise<undefined>,
     'getCanisterMetrics': (arg_0: GetMetricsParameters) => Promise<[] | [CanisterMetrics]>,
     'getCanisterLog': (arg_0: [] | [CanisterLogRequest]) => Promise<[] | [CanisterLogResponse]>,
+    'getCanistergeekInformation': (arg_0: GetInformationRequest) => Promise<GetInformationResponse>,
+    'updateCanistergeekInformation': (arg_0: UpdateInformationRequest) => Promise<undefined>,
 }
