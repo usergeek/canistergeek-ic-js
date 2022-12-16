@@ -1,15 +1,12 @@
-import {createCanisterActor as createCanistergeekCanisterActor} from './canistergeek';
-import {createCanisterActor as createBlackholeCanisterActor} from './blackhole0_0_0';
+import {createCanisterActor as _createBlackholeCanisterActor} from './blackhole0_0_0';
 import {hasOwnProperty} from "../util/typescriptAddons";
+import {ActorCallError, QueryCallRejectedError} from "@dfinity/agent";
 
 ////////////////////////////////////////////////
 // Public
 ////////////////////////////////////////////////
 
-export const CanistergeekService = {
-    createCanistergeekCanisterActor: createCanistergeekCanisterActor,
-    createBlackholeCanisterActor: createBlackholeCanisterActor,
-}
+export const createBlackholeCanisterActor = _createBlackholeCanisterActor
 
 export function getCandidOptional<T>(value: [] | [T]): T | undefined {
     if (value.length == 1) {
@@ -40,36 +37,37 @@ export const ICCanisterResponseUtil = (() => {
         noMethod: "IC0302"
     }
 
-    const parseICCanisterResponseQueryError = (e: any): ICCanisterQueryResponseError | undefined => {
-        if (e) {
-            if (hasOwnProperty(e, "type")) {
-                if (e.type === "query") {
-                    if (hasOwnProperty(e, "props")) {
-                        const props = e.props;
-                        return {
-                            type: "query",
-                            props: {
-                                code: props.Code,
-                                message: props.Message,
-                                status: props.Status,
-                            }
-                        }
-                    }
-                }
+    ////////////////////////////////////////////////
+    // Query
+    ////////////////////////////////////////////////
+
+    const parseICCanisterResponseQueryError = (e: any): QueryCallRejectedError | undefined => {
+        if (e != undefined) {
+            const agentError: ActorCallError = e as ActorCallError
+            if (agentError != undefined && agentError.type === "query") {
+                return agentError as QueryCallRejectedError
             }
         }
         return undefined
     }
 
-    const isICCanisterResponseQueryError = (error: ICCanisterQueryResponseError, errorCode: string): boolean => {
-        return error.props.message ? error.props.message.indexOf(errorCode) > -1 : false;
+    const isICCanisterResponseQueryError = (error: QueryCallRejectedError, errorCode: string): boolean => {
+        const keyValue: string | undefined = error.props?.Message || error.props?.message
+        return keyValue != undefined ? keyValue.indexOf(errorCode) > -1 : false;
     }
 
-    const isICCanisterResponseQueryError_NoMethod = (error: ICCanisterQueryResponseError): boolean => {
-        return isICCanisterResponseQueryError(error, ErrorCode.noMethod)
+    const isICCanisterResponseQueryError_NoMethod = (error: QueryCallRejectedError | undefined): boolean => {
+        if (error != undefined) {
+            return isICCanisterResponseQueryError(error, ErrorCode.noMethod)
+        }
+        return false
     }
 
-    const parseICCanisterResponseCallError = (e: any): ICCanisterCallResponseError | undefined => {
+    ////////////////////////////////////////////////
+    // Update
+    ////////////////////////////////////////////////
+
+    const parseICCanisterResponseUpdateError = (e: any): {message: string} | undefined => {
         if (e) {
             if (hasOwnProperty(e, "message")) {
                 return {
@@ -80,14 +78,14 @@ export const ICCanisterResponseUtil = (() => {
         return undefined
     }
 
-    const isICCanisterResponseCallError_NoUpdateMethod = (error: ICCanisterCallResponseError): boolean => {
-        console.log("isICCanisterResponseCallError_NoUpdateMethod: error.message.indexOf(\"Reject code: 3\")", error.message.indexOf("Reject code: 3"));
-        console.log("isICCanisterResponseCallError_NoUpdateMethod: error.message.indexOf(\"has no update method\")", error.message.indexOf("has no update method"));
-        const isRejectCode3 = error.message.indexOf("Reject code: 3") > -1
-        if (isRejectCode3) {
-            const isNoUpdateMethodError = error.message.indexOf("has no update method") > -1
-            if (isNoUpdateMethodError) {
-                return true
+    const isICCanisterResponseUpdateError_NoUpdateMethod = (error: {message: string} | undefined): boolean => {
+        if (error != undefined) {
+            const isRejectCode3 = error.message.indexOf("Reject code: 3") > -1
+            if (isRejectCode3) {
+                const isNoUpdateMethodError = error.message.indexOf("has no update method") > -1
+                if (isNoUpdateMethodError) {
+                    return true
+                }
             }
         }
         return false
@@ -96,7 +94,7 @@ export const ICCanisterResponseUtil = (() => {
     return {
         parseICCanisterResponseQueryError: parseICCanisterResponseQueryError,
         isICCanisterResponseQueryError_NoMethod: isICCanisterResponseQueryError_NoMethod,
-        parseICCanisterResponseCallError: parseICCanisterResponseCallError,
-        isICCanisterResponseCallError_NoUpdateMethod: isICCanisterResponseCallError_NoUpdateMethod,
+        parseICCanisterResponseUpdateError: parseICCanisterResponseUpdateError,
+        isICCanisterResponseUpdateError_NoUpdateMethod: isICCanisterResponseUpdateError_NoUpdateMethod,
     }
 })()

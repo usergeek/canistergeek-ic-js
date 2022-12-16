@@ -99,13 +99,15 @@ export const idlFactory = ({IDL}) => {
     const MetricsRequest = IDL.Record({ 'parameters' : GetMetricsParameters });
     const MetricsResponse = IDL.Record({ 'metrics' : IDL.Opt(CanisterMetrics) });
     const GetInformationRequest = IDL.Record({
-        'version' : IDL.Bool,
-        'metrics' : IDL.Opt(MetricsRequest),
         'status' : IDL.Opt(StatusRequest),
+        'metrics' : IDL.Opt(MetricsRequest),
+        'logs' : IDL.Opt(CanisterLogRequest),
+        'version' : IDL.Bool,
     });
     const GetInformationResponse = IDL.Record({
         'status' : IDL.Opt(StatusResponse),
         'metrics' : IDL.Opt(MetricsResponse),
+        'logs' : IDL.Opt(CanisterLogResponse),
         'version' : IDL.Opt(IDL.Nat),
     });
     const CollectMetricsRequestType = IDL.Variant({

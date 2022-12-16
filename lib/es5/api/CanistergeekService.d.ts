@@ -1,7 +1,5 @@
-export declare const CanistergeekService: {
-    createCanistergeekCanisterActor: (canisterId: string, identity: import("@dfinity/agent").Identity, host: string, httpAgent: import("@dfinity/agent").HttpAgent) => any;
-    createBlackholeCanisterActor: () => any;
-};
+import { QueryCallRejectedError } from "@dfinity/agent";
+export declare const createBlackholeCanisterActor: () => any;
 export declare function getCandidOptional<T>(value: [] | [T]): T | undefined;
 export declare function createCandidOptional<T>(value?: T): [] | [T];
 export declare type ICCanisterQueryResponseError = {
@@ -16,8 +14,12 @@ export declare type ICCanisterCallResponseError = {
     message: string;
 };
 export declare const ICCanisterResponseUtil: {
-    parseICCanisterResponseQueryError: (e: any) => ICCanisterQueryResponseError | undefined;
-    isICCanisterResponseQueryError_NoMethod: (error: ICCanisterQueryResponseError) => boolean;
-    parseICCanisterResponseCallError: (e: any) => ICCanisterCallResponseError | undefined;
-    isICCanisterResponseCallError_NoUpdateMethod: (error: ICCanisterCallResponseError) => boolean;
+    parseICCanisterResponseQueryError: (e: any) => QueryCallRejectedError | undefined;
+    isICCanisterResponseQueryError_NoMethod: (error: QueryCallRejectedError | undefined) => boolean;
+    parseICCanisterResponseUpdateError: (e: any) => {
+        message: string;
+    } | undefined;
+    isICCanisterResponseUpdateError_NoUpdateMethod: (error: {
+        message: string;
+    } | undefined) => boolean;
 };

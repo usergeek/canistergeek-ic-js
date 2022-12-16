@@ -1,6 +1,6 @@
 {
   "name": "canistergeek-ic-js",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Canistergeek Javascript Library",
   "main": "./lib/es5/index.js",
   "author": "Canistergeek <support@usergeek.com>",

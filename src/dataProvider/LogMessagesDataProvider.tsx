@@ -1,7 +1,7 @@
 import * as React from "react";
 import {PropsWithChildren, Reducer, useCallback, useReducer} from "react";
 import {CanisterId} from "./ConfigurationProvider";
-import {Identity} from "@dfinity/agent";
+import {ActorSubclass, Identity} from "@dfinity/agent";
 import _ from "lodash"
 import useIsMounted from "../util/isMounted";
 import {getCandidOptional} from "../api/CanistergeekService";
@@ -11,6 +11,7 @@ import {DistributiveOmit, hasOwnProperty} from "../util/typescriptAddons";
 import {unstable_batchedUpdates} from "react-dom";
 import {useCustomCompareMemo} from "use-custom-compare";
 import {CGError, CGErrorByKey, CGStatus, CGStatusByKey, CreateActorFn} from "./Commons";
+import {CanistergeekAPIHelper} from "./DataProvider";
 
 ////////////////////////////////////////////////
 // MessagesInfo
@@ -125,7 +126,7 @@ export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
         try {
             updateInfoStatusByCanister(_.mapValues(_.mapKeys(canisterIds, v => v), () => ({inProgress: true})))
 
-            const promises: Array<Promise<InfoData | undefined>> = _.map(canisterIds, (canisterId) => fetchCanisterInfo(canisterId, props.createActorFn, props.identity, props.host))
+            const promises: Array<Promise<InfoData | undefined>> = _.map(canisterIds, (canisterId) => CanistergeekAPIHelper.getCanisterLogMessagesInfo(canisterId, props.createActorFn, props.identity, props.host))
             const allSettledResult = await Promise.allSettled(promises)
             console.log("allSettledResult", _.cloneDeep(allSettledResult));
 
@@ -167,7 +168,7 @@ export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
 
     const getLogMessages: GetLogMessagesFn = useCallback<GetLogMessagesFn>(async (parameters: GetLogMessagesFnParameters): Promise<GetLogMessagesFnResult> => {
         const promises: Array<Promise<GetCanisterLogRecursiveResult>> = _.map<GetLogMessagesCanisterContext, Promise<GetCanisterLogRecursiveResult>>(parameters.canisters, async (canisterContext: GetLogMessagesCanisterContext) => {
-            const canisterActor = await props.createActorFn<_SERVICE>(canisterContext.canisterId, idlCanistergeekFactory, {
+            const canisterActor: ActorSubclass<_SERVICE> = await props.createActorFn<_SERVICE>(canisterContext.canisterId, idlCanistergeekFactory, {
                 agentOptions: {
                     identity: props.identity,
                     host: props.host
@@ -237,33 +238,6 @@ export const LogMessagesDataProvider = (props: PropsWithChildren<Props>) => {
     </LogMessagesDataContext.Provider>
 }
 
-const fetchCanisterInfo = async (canisterId: CanisterId, createActorFn: CreateActorFn, identity?: Identity, host?: string): Promise<InfoData | undefined> => {
-    const canisterActor = await createActorFn<_SERVICE>(canisterId, idlCanistergeekFactory, {
-        agentOptions: {
-            identity: identity,
-            host: host
-        }
-    })
-    let result: [] | [CanisterLogResponse] = [];
-    try {
-        result = await canisterActor.getCanisterLog([{getMessagesInfo: null}]);
-    } catch (e) {
-        return Promise.reject(e)
-    }
-    if (result.length === 1) {
-        const loggerResponse: CanisterLogResponse = result[0];
-        if (hasOwnProperty(loggerResponse, "messagesInfo")) {
-            const info = loggerResponse.messagesInfo;
-            return {
-                count: info.count,
-                firstTimeNanos: info.firstTimeNanos.length === 1 ? info.firstTimeNanos[0] : undefined,
-                lastTimeNanos: info.lastTimeNanos.length === 1 ? info.lastTimeNanos[0] : undefined,
-            };
-        }
-    }
-    return undefined
-}
-
 type GetCanisterLogRecursiveRequest = DistributiveOmit<CanisterLogRequest, "getMessagesInfo">
 type GetCanisterLogRecursiveResponse = DistributiveOmit<CanisterLogResponse, "messagesInfo">
 
@@ -277,7 +251,7 @@ type GetCanisterLogRecursiveResult = {
     targetMaxCount: number
 }
 
-const getCanisterLogRecursive = async (canisterId: string, canisterActor: _SERVICE, request: GetCanisterLogRecursiveRequest): Promise<GetCanisterLogRecursiveResult> => {
+const getCanisterLogRecursive = async (canisterId: string, canisterActor: ActorSubclass<_SERVICE>, request: GetCanisterLogRecursiveRequest): Promise<GetCanisterLogRecursiveResult> => {
     let messagesResult: CanisterLogMessages = {
         data: [],
         lastAnalyzedMessageTimeNanos: []
@@ -313,8 +287,7 @@ const getCanisterLogRecursive = async (canisterId: string, canisterActor: _SERVI
     }
 
     while (true) {
-        const getCanisterLogResult = await canisterActor.getCanisterLog([request]);
-        const loggerResponse: CanisterLogResponse | undefined = getCandidOptional<CanisterLogResponse>(getCanisterLogResult);
+        const loggerResponse: CanisterLogResponse | undefined = await CanistergeekAPIHelper.getCanisterLogResponse(canisterActor, request)//getCandidOptional<CanisterLogResponse>(getCanisterLogResult);
         if (loggerResponse && hasOwnProperty(loggerResponse, "messages")) {
             const logMessages: CanisterLogMessages = loggerResponse.messages
             messagesResult.data = [

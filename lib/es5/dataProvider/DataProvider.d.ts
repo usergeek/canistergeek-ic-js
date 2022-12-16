@@ -1,9 +1,10 @@
 import { PropsWithChildren } from "react";
-import { CollectMetricsRequestType, DailyMetricsData, HourlyMetricsData } from "../api/canistergeek.did";
-import { Identity } from "@dfinity/agent";
+import { _SERVICE as CanistergeekService, CanisterLogRequest, CanisterLogResponse, CanisterMetrics, CollectMetricsRequestType, DailyMetricsData, GetMetricsParameters, HourlyMetricsData } from "../api/canistergeek.did";
+import { ActorSubclass, Identity } from "@dfinity/agent";
 import { CanisterId } from "./ConfigurationProvider";
 import { KeysOfUnion } from "../util/typescriptAddons";
 import { CGErrorByKey, CGStatusByKey, CreateActorFn } from "./Commons";
+import { InfoData } from "./LogMessagesDataProvider";
 declare type Granularity = "hourly" | "daily";
 export declare type GetCanisterMetricsSource = "canister" | "blackhole";
 declare type GetCanisterMetricsFnParamsCommon<S extends GetCanisterMetricsSource = GetCanisterMetricsSource> = {
@@ -52,4 +53,10 @@ declare type Props = {
     createActorFn: CreateActorFn;
 };
 export declare const DataProvider: (props: PropsWithChildren<Props>) => JSX.Element;
+export declare const CanistergeekAPIHelper: {
+    getCanisterMetrics: (canisterActor: ActorSubclass<CanistergeekService>, parameters: GetMetricsParameters) => Promise<[] | [CanisterMetrics]>;
+    collectCanisterMetrics: (canisterActor: ActorSubclass<CanistergeekService>, collectMetricsType: KeysOfUnion<CollectMetricsRequestType>) => Promise<undefined>;
+    getCanisterLogMessagesInfo: (canisterId: CanisterId, createActorFn: CreateActorFn, identity?: Identity, host?: string) => Promise<InfoData | undefined>;
+    getCanisterLogResponse: (canisterActor: ActorSubclass<CanistergeekService>, logRequest: CanisterLogRequest) => Promise<CanisterLogResponse | undefined>;
+};
 export {};

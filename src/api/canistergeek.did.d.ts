@@ -104,11 +104,13 @@ export interface MetricsResponse { 'metrics' : [] | [CanisterMetrics] }
 export interface GetInformationRequest {
     'status' : [] | [StatusRequest],
     'metrics' : [] | [MetricsRequest],
+    'logs' : [] | [CanisterLogRequest],
     'version' : boolean,
 }
 export interface GetInformationResponse {
   'status' : [] | [StatusResponse],
   'metrics' : [] | [MetricsResponse],
+  'logs' : [] | [CanisterLogResponse],
   'version' : [] | [bigint],
 }
 export type CollectMetricsRequestType = { 'force' : null } |

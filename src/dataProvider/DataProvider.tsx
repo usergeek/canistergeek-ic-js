@@ -1,9 +1,9 @@
 import * as React from "react";
 import {PropsWithChildren, Reducer, useCallback, useReducer} from "react";
-import {_SERVICE, CanisterMetrics, CollectMetricsRequestType, DailyMetricsData, GetInformationRequest, GetInformationResponse, GetMetricsParameters, HourlyMetricsData, MetricsRequest, MetricsResponse} from "../api/canistergeek.did";
+import {_SERVICE as CanistergeekService, CanisterLogRequest, CanisterLogResponse, CanisterMetrics, CollectMetricsRequestType, DailyMetricsData, GetInformationRequest, GetInformationResponse, GetMetricsParameters, HourlyMetricsData, MetricsRequest, MetricsResponse} from "../api/canistergeek.did";
 import {useCustomCompareMemo} from "use-custom-compare";
-import {ActorSubclass, Identity} from "@dfinity/agent";
-import {CanistergeekService, createCandidOptional, getCandidOptional, ICCanisterResponseUtil} from "../api/CanistergeekService";
+import {ActorSubclass, Identity, QueryCallRejectedError} from "@dfinity/agent";
+import {createBlackholeCanisterActor, createCandidOptional, getCandidOptional, ICCanisterResponseUtil} from "../api/CanistergeekService";
 import {unstable_batchedUpdates} from "react-dom";
 import _ from "lodash"
 import {CanisterId} from "./ConfigurationProvider";
@@ -12,6 +12,7 @@ import {hasOwnProperty, KeysOfUnion} from "../util/typescriptAddons";
 import {Principal} from "@dfinity/principal";
 import {CGError, CGErrorByKey, CGStatus, CGStatusByKey, CreateActorFn} from "./Commons";
 import {idlFactory as idlCanistergeekFactory} from "../api/canistergeek";
+import {InfoData} from "./LogMessagesDataProvider";
 
 type Granularity = "hourly" | "daily"
 
@@ -213,7 +214,7 @@ export const DataProvider = (props: PropsWithChildren<Props>) => {
         try {
             updateContextStatus(_.mapValues(_.mapKeys(params.canisterIds, v => v), () => ({inProgress: true})))
             const promises: Array<Promise<any>> = _.map<string, Promise<any>>(params.canisterIds, async (canisterId) => {
-                const canisterActor = await props.createActorFn<_SERVICE>(canisterId, idlCanistergeekFactory, {
+                const canisterActor = await props.createActorFn<CanistergeekService>(canisterId, idlCanistergeekFactory, {
                     agentOptions: {
                         identity: props.identity,
                         host: props.host
@@ -266,7 +267,7 @@ type FetchCanisterHourlyDataPromiseResult = {
     "hourly": Array<HourlyMetricsData>
 }
 const fetchCanisterHourlyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, createActorFn: CreateActorFn, identity?: Identity, host?: string): Promise<FetchCanisterHourlyDataPromiseResult | undefined> => {
-    const canisterActor = await createActorFn<_SERVICE>(params.canisterId, idlCanistergeekFactory, {
+    const canisterActor = await createActorFn<CanistergeekService>(params.canisterId, idlCanistergeekFactory, {
         agentOptions: {
             identity: identity,
             host: host
@@ -295,7 +296,7 @@ type FetchCanisterBlackholeDataPromiseResult = {
 }
 
 const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFnParamsCanister, createActorFn: CreateActorFn, identity?: Identity, host?: string): Promise<FetchCanisterDailyDataPromiseResult | undefined> => {
-    const canisterActor = await createActorFn<_SERVICE>(params.canisterId, idlCanistergeekFactory, {
+    const canisterActor = await createActorFn<CanistergeekService>(params.canisterId, idlCanistergeekFactory, {
         agentOptions: {
             identity: identity,
             host: host
@@ -316,7 +317,7 @@ const fetchCanisterDailyDataAndUpdateState = async (params: GetCanisterMetricsFn
 }
 
 const fetchCanisterBlackholeDataAndUpdateState = async (params: GetCanisterMetricsFnParamsBlackhole): Promise<FetchCanisterBlackholeDataPromiseResult | undefined> => {
-    const canisterActor = CanistergeekService.createBlackholeCanisterActor();
+    const canisterActor = createBlackholeCanisterActor();
     const canisterData = await canisterActor.canister_status({canister_id: Principal.fromText(params.canisterId)})
     return {
         blackhole: {
@@ -343,7 +344,7 @@ const getDailyMetricsWithCanisterDailyResponse = (canisterResponse: [] | [Canist
     }
 }
 
-const CanistergeekAPIHelper = (() => {
+export const CanistergeekAPIHelper = (() => {
     const SUPPORTED_VERSION = 1;
     const getCanisterSupportedVersion = (getInformationResponse: GetInformationResponse): bigint | undefined => {
         return getCandidOptional(getInformationResponse.version);
@@ -354,15 +355,15 @@ const CanistergeekAPIHelper = (() => {
         }
         return false
     }
-    const getCanisterMetrics = async (canisterActor: ActorSubclass<_SERVICE>, parameters: GetMetricsParameters): Promise<[] | [CanisterMetrics]> => {
+    const getCanisterMetrics = async (canisterActor: ActorSubclass<CanistergeekService>, parameters: GetMetricsParameters): Promise<[] | [CanisterMetrics]> => {
         try {
             //trying to get version and metrics
             const metricsRequest: MetricsRequest = {parameters: parameters};
-            const request: GetInformationRequest = {version: true, status: [], metrics: [metricsRequest],}
+            const request: GetInformationRequest = {version: true, status: [], metrics: [metricsRequest], logs: []}
             const getCanistergeekInformationResponse: GetInformationResponse = await canisterActor.getCanistergeekInformation(request)
             const canisterSupportedVersion = getCanisterSupportedVersion(getCanistergeekInformationResponse);
             if (ifCanisterSupportsVersion(canisterSupportedVersion, SUPPORTED_VERSION)) {
-                const metricsResponse: MetricsResponse | undefined = getCandidOptional(getCanistergeekInformationResponse.metrics);
+                const metricsResponse = getCandidOptional(getCanistergeekInformationResponse.metrics);
                 return createCandidOptional(getCandidOptional(metricsResponse?.metrics))
             } else {
                 // noinspection ExceptionCaughtLocallyJS
@@ -374,19 +375,19 @@ const CanistergeekAPIHelper = (() => {
             - cannot find method "getCanistergeekInformation" in canister - if it is the case - we have to try legacy method
             - any other error - throw the error up
             */
-            const canisterResponseQueryError = ICCanisterResponseUtil.parseICCanisterResponseQueryError(e);
-            if (canisterResponseQueryError != undefined && ICCanisterResponseUtil.isICCanisterResponseQueryError_NoMethod(canisterResponseQueryError)) {
-                console.log(`CanistergeekAPIHelper.getCanisterMetrics: fallback to legacy method getCanisterMetrics()...`);
-                const metrics = await canisterActor.getCanisterMetrics(parameters);
-                return metrics
+            const canisterResponseQueryError: QueryCallRejectedError | undefined = ICCanisterResponseUtil.parseICCanisterResponseQueryError(e);
+            if (ICCanisterResponseUtil.isICCanisterResponseQueryError_NoMethod(canisterResponseQueryError)) {
+                console.warn(`CanistergeekAPIHelper.getCanisterMetrics: fallback to legacy method getCanisterMetrics()...`);
+                return await canisterActor.getCanisterMetrics(parameters)
             }
             console.error(`CanistergeekAPIHelper.getCanisterMetrics: caught error`, e);
             throw e
         }
     }
-    const collectCanisterMetrics = async (canisterActor: ActorSubclass<_SERVICE>, collectMetricsType: KeysOfUnion<CollectMetricsRequestType>): Promise<undefined> => {
+
+    const collectCanisterMetrics = async (canisterActor: ActorSubclass<CanistergeekService>, collectMetricsType: KeysOfUnion<CollectMetricsRequestType>): Promise<undefined> => {
         try {
-            const request: GetInformationRequest = {version: true, status: [], metrics: []}
+            const request: GetInformationRequest = {version: true, status: [], metrics: [], logs: []}
             const getCanistergeekInformationResponse: GetInformationResponse = await canisterActor.getCanistergeekInformation(request)
             const canisterSupportedVersion = getCanisterSupportedVersion(getCanistergeekInformationResponse);
             if (ifCanisterSupportsVersion(canisterSupportedVersion, SUPPORTED_VERSION)) {
@@ -398,29 +399,135 @@ const CanistergeekAPIHelper = (() => {
             return undefined
         } catch (e) {
             let tryLegacy = false;
-            const canisterResponseQueryError = ICCanisterResponseUtil.parseICCanisterResponseQueryError(e);
-            const isQueryNoMethodError = canisterResponseQueryError != undefined && ICCanisterResponseUtil.isICCanisterResponseQueryError_NoMethod(canisterResponseQueryError)
-            if (isQueryNoMethodError) {
+            const canisterResponseQueryError: QueryCallRejectedError | undefined = ICCanisterResponseUtil.parseICCanisterResponseQueryError(e);
+            if (ICCanisterResponseUtil.isICCanisterResponseQueryError_NoMethod(canisterResponseQueryError)) {
                 tryLegacy = true
             } else {
-                const canisterResponseCallError = ICCanisterResponseUtil.parseICCanisterResponseCallError(e)
-                const isCallNoMethodError = canisterResponseCallError != undefined && ICCanisterResponseUtil.isICCanisterResponseCallError_NoUpdateMethod(canisterResponseCallError)
-                if (isCallNoMethodError) {
+                const canisterResponseUpdateError = ICCanisterResponseUtil.parseICCanisterResponseUpdateError(e)
+                if (ICCanisterResponseUtil.isICCanisterResponseUpdateError_NoUpdateMethod(canisterResponseUpdateError)) {
                     tryLegacy = true
                 }
             }
             if (tryLegacy) {
-                console.log(`CanistergeekAPIHelper.collectCanisterMetrics: fallback to legacy method collectCanisterMetrics()...`);
-                const legacyCollectCanisterMetricsResponse = await canisterActor.collectCanisterMetrics();
-                return legacyCollectCanisterMetricsResponse
+                console.warn(`CanistergeekAPIHelper.collectCanisterMetrics: fallback to legacy method collectCanisterMetrics()...`);
+                await canisterActor.collectCanisterMetrics()
+                return undefined
             }
             console.error(`CanistergeekAPIHelper.collectCanisterMetrics: caught error`, e);
             throw e
         }
     }
 
+    const getCanisterLogMessagesInfo = async (canisterId: CanisterId, createActorFn: CreateActorFn, identity?: Identity, host?: string): Promise<InfoData | undefined> => {
+        const canisterActor: ActorSubclass<CanistergeekService> | undefined = await createActorFn<CanistergeekService>(canisterId, idlCanistergeekFactory, {
+            agentOptions: {
+                identity: identity,
+                host: host
+            }
+        })
+        if (canisterActor) {
+            const logRequest: CanisterLogRequest = {getMessagesInfo: null};
+            let tryLegacy = false
+            try {
+                //trying to get version and logs
+                const request: GetInformationRequest = {version: true, status: [], metrics: [], logs: [logRequest]}
+                const getCanistergeekInformationResponse: GetInformationResponse = await canisterActor.getCanistergeekInformation(request)
+                const canisterSupportedVersion = getCanisterSupportedVersion(getCanistergeekInformationResponse);
+                if (ifCanisterSupportsVersion(canisterSupportedVersion, SUPPORTED_VERSION)) {
+                    const result: InfoData | undefined = getCanistersLogMessagesInfoData(getCanistergeekInformationResponse.logs)
+                    if (result == undefined) {
+                        tryLegacy = true
+                        // noinspection ExceptionCaughtLocallyJS
+                        throw new Error(`try legacy`);
+                    } else {
+                        return result
+                    }
+                } else {
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw new Error(`Unsupported version (canister has ${canisterSupportedVersion}, expected ${SUPPORTED_VERSION})`);
+                }
+            } catch (e) {
+                /*
+                * error might be:
+                * - cannot find method "getCanistergeekInformation" in canister - if it is the case - we have to try legacy method
+                * - any other error - throw the error up
+                * */
+                if (!tryLegacy) {
+                    const canisterResponseQueryError: QueryCallRejectedError | undefined = ICCanisterResponseUtil.parseICCanisterResponseQueryError(e);
+                    tryLegacy = ICCanisterResponseUtil.isICCanisterResponseQueryError_NoMethod(canisterResponseQueryError)
+                }
+                if (tryLegacy) {
+                    console.warn(`CanistergeekAPIHelper.getCanisterLogMessagesInfo: fallback to legacy method getCanisterLog()...`);
+                    const result: [] | [CanisterLogResponse] = await canisterActor.getCanisterLog([logRequest]);
+                    return getCanistersLogMessagesInfoData(result)
+                }
+                console.error(`CanistergeekAPIHelper.getCanisterLogMessagesInfo: caught error`, e);
+                throw e
+            }
+        }
+        return undefined
+    }
+
+    const getCanisterLogResponse = async (canisterActor: ActorSubclass<CanistergeekService>, logRequest: CanisterLogRequest): Promise<CanisterLogResponse | undefined> => {
+        let tryLegacy = false
+        try {
+            //trying to get version and logs
+            const request: GetInformationRequest = {version: true, status: [], metrics: [], logs: [logRequest]}
+            const getCanistergeekInformationResponse: GetInformationResponse = await canisterActor.getCanistergeekInformation(request)
+            const canisterSupportedVersion = getCanisterSupportedVersion(getCanistergeekInformationResponse);
+            if (ifCanisterSupportsVersion(canisterSupportedVersion, SUPPORTED_VERSION)) {
+                const result: CanisterLogResponse | undefined = getCandidOptional<CanisterLogResponse>(getCanistergeekInformationResponse.logs)
+                if (result == undefined) {
+                    tryLegacy = true
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw new Error(`try legacy`);
+                } else {
+                    return result
+                }
+            } else {
+                // noinspection ExceptionCaughtLocallyJS
+                throw new Error(`Unsupported version (canister has ${canisterSupportedVersion}, expected ${SUPPORTED_VERSION})`);
+            }
+        } catch (e) {
+            /*
+            error might be:
+            - cannot find method "getCanistergeekInformation" in canister - if it is the case - we have to try legacy method
+            - any other error - throw the error up
+            */
+            if (!tryLegacy) {
+                const canisterResponseQueryError: QueryCallRejectedError | undefined = ICCanisterResponseUtil.parseICCanisterResponseQueryError(e);
+                tryLegacy = ICCanisterResponseUtil.isICCanisterResponseQueryError_NoMethod(canisterResponseQueryError)
+            }
+            if (tryLegacy) {
+                console.warn(`CanistergeekAPIHelper.getCanisterLogResponse: fallback to legacy method getCanisterLog()...`);
+                const getCanisterLogResult = await canisterActor.getCanisterLog([logRequest]);
+                return getCandidOptional<CanisterLogResponse>(getCanisterLogResult)
+            }
+            console.error(`CanistergeekAPIHelper.getCanisterLogResponse: caught error`, e);
+            throw e
+        }
+    }
+
+    const getCanistersLogMessagesInfoData = (logs: [] | [CanisterLogResponse]): InfoData | undefined => {
+        const loggerResponse: CanisterLogResponse | undefined = getCandidOptional(logs)
+        if (loggerResponse) {
+            if (hasOwnProperty(loggerResponse, "messagesInfo")) {
+                const info = loggerResponse.messagesInfo;
+                const firstTimeNanos = getCandidOptional(info.firstTimeNanos)
+                const lastTimeNanos = getCandidOptional(info.lastTimeNanos)
+                return {
+                    count: info.count,
+                    firstTimeNanos: firstTimeNanos,
+                    lastTimeNanos: lastTimeNanos,
+                };
+            }
+        }
+    }
+
     return {
         getCanisterMetrics: getCanisterMetrics,
-        collectCanisterMetrics: collectCanisterMetrics
+        collectCanisterMetrics: collectCanisterMetrics,
+        getCanisterLogMessagesInfo: getCanisterLogMessagesInfo,
+        getCanisterLogResponse: getCanisterLogResponse,
     }
 })()
